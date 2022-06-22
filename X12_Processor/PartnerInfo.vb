@@ -1,0 +1,119 @@
+﻿Option Strict On
+Option Explicit On
+
+Public Class PartnerInfo
+    ' AS2 Identifier = Partner ID
+    Private _PartnerID As String
+    ' Interaction/Map / X12 Version
+    Private _Version As String
+    ' From X12 ID Vendor ID to Host  (how they identify themselves to us
+    Private _Sender_to_Host_ID As String
+    Private _Sender_Qualifier As Object
+    Private _Host_Qualifier As Object
+
+    ' Adjustments to transaction processing
+    Private _Customizations As Dictionary(Of String, String)
+
+    'Tran_810_Batch_Num 
+    '    Tran_812_Batch_Num 
+    '    Tran_846_Batch_Num 
+    '    Tran_855_Batch_Num 
+    '    Tran_856_Batch_Num 
+    '    Tran_997_Batch_Num 
+    '    price_code 
+    '    M2K_PARTNER_ID 
+    '    partner_found 
+    '    N104 
+    '    Generate_812 
+    '    T810_Include_ITD 
+    '    T810_Include_FOB 
+    '    T810_Include_CTT 
+    '    T810_Use_N104_Code 
+    '    T810_N1_F1_EIC_Shipper_Code 
+    '    T810_N1_F4_RI_Code 
+    '    T810_Include_CAD 
+    '    T810_Cad_F2_Prefix 
+    '    T810_Alt_Cad_Layout 
+    '    T810_IT1_Nemco_Item_Qual 
+    '    T810_IT1_Customer_Item_Qual 
+    '    T810_CTP_F8_Amt 
+    '    T810_ITD_Terms 
+    '    T810_CDD_F2_Item_Qual 
+    '    T810_N1_SET_TYPE 
+    '    T810_BIG_CreditMemo 
+    '    T856_HL_DTM_Output_PRE_POST 
+    '    T856_HL_DTM_Output_POST 
+    '    T856_CTT_Output 
+    '    X12_Always_Delimiter 
+    '    T850_Flip_Addr1_Addr2 
+    '    T855_Output_Ref_segment 
+    '    T856_Ship_Date_Ref 
+    '    T810_TRACKING_NTE 
+    '    T810_GS_08_VER 
+    '    T810_Include_PO4 
+    '    Our_Cust_Number
+
+    Public Function GetHost_Qualifier() As Object
+        Return _Host_Qualifier
+    End Function
+
+    Public Sub SetHost_Qualifier(AutoPropertyValue As Object)
+        _Host_Qualifier = AutoPropertyValue
+    End Sub
+
+    Public Function GetSender_Qualifier() As Object
+        Return _Sender_Qualifier
+    End Function
+
+    Public Sub SetSender_Qualifier(AutoPropertyValue As Object)
+        _Sender_Qualifier = AutoPropertyValue
+    End Sub
+    ' to X_12 ID Vendor ID to Host ( how they want to identify us when sending
+    Private _Host_to_Sender_ID As String
+    ' AS2 Host ID 
+    Property Host_ID As String
+
+    Public Function GetHost_to_Sender_ID() As String
+        Return _Host_to_Sender_ID
+    End Function
+
+    Public Sub SetHost_to_Sender_ID(AutoPropertyValue As String)
+        _Host_to_Sender_ID = AutoPropertyValue
+    End Sub
+
+    Public Function GetSender_to_Host_ID() As String
+        Return _Sender_to_Host_ID
+    End Function
+
+    Public Sub SetSender_to_Host_ID(AutoPropertyValue As String)
+        _Sender_to_Host_ID = AutoPropertyValue
+    End Sub
+
+
+
+
+    Public Function GetVersion() As String
+        Return _Version
+    End Function
+
+    Public Sub SetVersion(AutoPropertyValue As String)
+        _Version = AutoPropertyValue
+    End Sub
+
+    Public Function GetCustomizations() As Dictionary(Of String, String)
+        Return _Customizations
+    End Function
+
+    Public Sub SetCustomizations(AutoPropertyValue As Dictionary(Of String, String))
+        _Customizations = AutoPropertyValue
+    End Sub
+
+
+    Public Function GetPartnerID() As String
+        Return _PartnerID
+    End Function
+
+    Public Sub SetPartnerID(AutoPropertyValue As String)
+        _PartnerID = AutoPropertyValue
+    End Sub
+End Class
