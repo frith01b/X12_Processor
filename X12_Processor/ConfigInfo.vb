@@ -1,94 +1,115 @@
 ﻿Option Strict On
 Option Explicit On
+
+
 Imports System.Data
 Imports System.IO
 Imports System.Xml
+Imports System.Xml.Serialization
+
+Public Enum File_Format_List
+    X12 = 1
+    Delimited = 2
+    FixedField = 3
+    SQL = 4
+End Enum
 
 <Serializable()>
 Public Class ConfigInfo
+    '****************************************************************
+    ' all new public fields need corresponding private ones for serialization to work
+    ' (search for   "Non-Public properties" at bottom of code)
+    '****************************************************************
     Public Shared Configfile As String
     Public Shared ConfigDIR As String
-    Public Shared PartnerDir As String
     Public Shared FileLoadDir As String
+    Public Shared InputFile As String
+    Public Shared OutputType As File_Format_List
+    Public Shared OutputFormatFile As String
     Public Shared OutputDir As String
-    Public Shared SegmentDefDir As String
+    Public Shared PartnerDir As String
+    Public Shared PartnerID As String
+    Public Shared ProcessedDir As String
     Public Shared RecordSetDir As String
-    Public Sub New(MyConfigFile As String)
+    Public Shared SegmentDefDir As String
+
+    '**********************************************************
+    Public Shared Function FromFile(MyConfigFile As String) As ConfigInfo
         Dim retry As Integer = 0
 
 LookTwice:
         If File.Exists(MyConfigFile) Then
+            Dim objStreamReader As New StreamReader(MyConfigFile) '
+            Dim serializer As New Serialization.XmlSerializer(GetType(ConfigInfo))
+            Dim LocalConfig As ConfigInfo
 
-            Dim xmlFile As XmlReader
-            xmlFile = XmlReader.Create(MyConfigFile, New XmlReaderSettings())
-            Dim ds As New DataSet
-            ds.ReadXml(xmlFile)
-            Dim i As Integer
-            For i = 0 To ds.Tables(0).Rows.Count - 1
-                Select Case ds.Tables(0).Rows(i).Item(0).ToString
-                    Case "Configfile"
-                        Configfile = ds.Tables(0).Rows(i).Item(1).ToString
-                    Case "ConfigDIR"
-                        ConfigDIR = ds.Tables(0).Rows(i).Item(1).ToString
-                    Case "PartnerDir"
-                        PartnerDir = ds.Tables(0).Rows(i).Item(1).ToString
-                    Case "FileLoadDir"
-                        ds.Tables(0).Rows(i).Item(1).ToString()
-                    Case "OutputDir"
-                        OutputDir = ds.Tables(0).Rows(i).Item(1).ToString
-                    Case "TranDefDir"
-                        SegmentDefDir = ds.Tables(0).Rows(i).Item(1).ToString
-                    Case "RecordSetDir"
-                        RecordSetDir = ds.Tables(0).Rows(i).Item(1).ToString
-                    Case Else
-                End Select
-            Next
-            Call MakeConfDirs()
+            LocalConfig = DirectCast(serializer.Deserialize(objStreamReader), ConfigInfo)
+
+            Return LocalConfig
+            'Dim xmlFile As XmlReader
+            'xmlFile = XmlReader.Create(MyConfigFile, New XmlReaderSettings())
+            'Dim ds As New DataSet
+            'ds.ReadXml(xmlFile)
+            'Dim i As Integer
+            'For i = 0 To ds.Tables(0).Rows.Count - 1
+            '    Select Case ds.Tables(0).Rows(i).Item(0).ToString
+            '        Case "Configfile"
+            '            Configfile = ds.Tables(0).Rows(i).Item(1).ToString
+            '        Case "ConfigDIR"
+            '            ConfigDIR = ds.Tables(0).Rows(i).Item(1).ToString
+            '        Case "FileLoadDir"
+            '            ds.Tables(0).Rows(i).Item(1).ToString()
+            '        Case "PartnerDir"
+            '            PartnerDir = ds.Tables(0).Rows(i).Item(1).ToString
+            '        Case "PartnerID"
+            '            PartnerDir = ds.Tables(0).Rows(i).Item(1).ToString
+            '        Case "ProcessedDir"
+            '            ProcessedDir = ds.Tables(0).Rows(i).Item(1).ToString
+            '        Case "OutputDir"
+            '            OutputDir = ds.Tables(0).Rows(i).Item(1).ToString
+            '        Case "TranDefDir"
+            '            SegmentDefDir = ds.Tables(0).Rows(i).Item(1).ToString
+            '        Case "RecordSetDir"
+            '            RecordSetDir = ds.Tables(0).Rows(i).Item(1).ToString
+            '        Case Else
+            '    End Select
+            'Next
+
         Else
-            If retry = 0 Then
-                retry = retry + 1
-                'run default constructor which creates default conf file
-                Dim Myvar As ConfigInfo = New ConfigInfo
-
-                GoTo LookTwice
-            End If
+            Return Nothing
         End If
-    End Sub
+    End Function
+    '**********************************************************
+    '**********************************************************
+    'Default values only for new installations
     Public Sub New()
         Configfile = "C:\temp\EDI\X12_Processor.conf"
         ConfigDIR = "C:\temp\EDI\"
-        PartnerDir = "C:\temp\EDI\Partners"
         FileLoadDir = "C:\EDI\INBOUND"
+        PartnerDir = "C:\temp\EDI\Partners"
+        PartnerID = "FROM_AS2"  ' special qualifier to mean just read the AS2 file to get partner id--
+        ProcessedDir = FileLoadDir & "\Processed"
         OutputDir = "C:\EDI\OUTBOUND"
+        OutputFormatFile = "C:\temp\EDI\X12_OutputFormat.conf"
+        OutputType = File_Format_List.Delimited
         SegmentDefDir = "C:\temp\EDI\SEGDEF"
         RecordSetDir = "C:\temp\EDI\RECDEF"
-        Call MakeConfDirs()
-        SaveConfigFile(Configfile)
 
     End Sub
+    '**********************************************************
     Public Sub SaveConfigFile(MyconfigFile As String)
+
+        Utility.VerifyDirList({Path.GetFullPath(MyconfigFile)})
         Dim writer As New System.Xml.Serialization.XmlSerializer(GetType(ConfigInfo))
         Dim file As New System.IO.StreamWriter(path:=MyconfigFile)
         writer.Serialize(file, Me)
         file.Close()
 
     End Sub
-    Private Sub MakeConfDirs()
-        If (Not System.IO.Directory.Exists(ConfigDIR)) Then
-            System.IO.Directory.CreateDirectory(ConfigDIR)
-        End If
-        If (Not System.IO.Directory.Exists(PartnerDir)) Then
-            System.IO.Directory.CreateDirectory(PartnerDir)
-        End If
-        If (Not System.IO.Directory.Exists(OutputDir)) Then
-            System.IO.Directory.CreateDirectory(OutputDir)
-        End If
-        If (Not System.IO.Directory.Exists(SegmentDefDir)) Then
-            System.IO.Directory.CreateDirectory(SegmentDefDir)
-        End If
-        If (Not System.IO.Directory.Exists(RecordSetDir)) Then
-            System.IO.Directory.CreateDirectory(RecordSetDir)
-        End If
+    '**********************************************************
+    Public Shared Sub MakeConfDirs()
+        Utility.VerifyDirList({FileLoadDir, OutputDir, PartnerDir, OutputDir, SegmentDefDir,
+                              RecordSetDir})
     End Sub
 
     '*********************************
@@ -110,14 +131,6 @@ LookTwice:
             ConfigDIR = value
         End Set
     End Property
-    Property Partner_Dir As String
-        Get
-            Return PartnerDir
-        End Get
-        Set(ByVal value As String)
-            PartnerDir = value
-        End Set
-    End Property
     Property FileLoad_Dir As String
         Get
             Return FileLoadDir
@@ -126,12 +139,53 @@ LookTwice:
             FileLoadDir = value
         End Set
     End Property
+    Property Partner_Dir As String
+        Get
+            Return PartnerDir
+        End Get
+        Set(ByVal value As String)
+            PartnerDir = value
+        End Set
+    End Property
+    Property Partner_ID As String
+        Get
+            Return PartnerID
+        End Get
+        Set(ByVal value As String)
+            PartnerID = value
+        End Set
+    End Property
+    Property Processed_Dir As String
+        Get
+            Return ProcessedDir
+        End Get
+        Set(ByVal value As String)
+            ProcessedDir = value
+        End Set
+    End Property
     Property Output_Dir As String
         Get
             Return OutputDir
         End Get
         Set(ByVal value As String)
             OutputDir = value
+        End Set
+    End Property
+    Property Output_FormatFile As String
+        Get
+            Return OutputFormatFile
+        End Get
+        Set(ByVal value As String)
+            OutputFormatFile = value
+        End Set
+    End Property
+
+    Property Output_Type As File_Format_List
+        Get
+            Return OutputType
+        End Get
+        Set(ByVal value As File_Format_List)
+            OutputType = value
         End Set
     End Property
     Property SegmentDef_Dir As String

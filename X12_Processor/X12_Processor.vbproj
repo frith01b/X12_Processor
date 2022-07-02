@@ -16,8 +16,4 @@
     <PackageReference Include="System.Security.Principal.Windows" Version="5.0.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="X12_Rec_Set\" />
-  </ItemGroup>
-
 </Project>

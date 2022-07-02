@@ -35,10 +35,6 @@ Public Class Segment
     Shared FieldCount As Integer
 
     Private _Fields As Dictionary(Of String, String)
-
-
-
-
     Public Sub New()
 
         If FieldCount = 0 Then
@@ -133,7 +129,7 @@ Public Class Segment
                 '    RESULT = RESULT & X12SegDelimiter
                 'end if
             Else
-                RESULT = RESULT & Interchange.SegmentDelimiter
+                RESULT = RESULT & Interchange.FieldDelimiter
             End If
 
         Next
@@ -153,25 +149,25 @@ Public Class Segment
     Function Get_Field_RPAD(outField As String, myLen As Integer, myPad As String) As String
 
         ' ensure data does not contain field/element delimiter
-        outField = outField.Replace(Interchange.ElementDelimiter, Interchange.ElementDelimiter_Replace_Char)
+        outField = outField.Replace(Interchange.FieldDelimiter, Interchange.FieldDelimiter_Replace_Char)
         ' add padding character to end, limit max size to myLen
         outField &= String.Join("", Enumerable.Repeat(myPad, myLen))
-        outField = outField.Substring(1, myLen) + Interchange.ElementDelimiter
+        outField = outField.Substring(1, myLen) + Interchange.FieldDelimiter
         Return outField
     End Function
     Function Get_Field_LPAD(ByRef outField As String, myLen As Integer, myPad As String) As String
         ' add padding character to beginning, limit max size to myLen
-        outField = outField.Replace(Interchange.ElementDelimiter, Interchange.ElementDelimiter_Replace_Char)
+        outField = outField.Replace(Interchange.FieldDelimiter, Interchange.FieldDelimiter_Replace_Char)
         outField = String.Join("", Enumerable.Repeat(myPad, myLen)) & outField
-        outField = Right(outField, myLen) & Interchange.ElementDelimiter
+        outField = Right(outField, myLen) & Interchange.FieldDelimiter
         Return (outField)
 
     End Function
     Function Get_Field_ZPAD(ByRef outField As String, myLen As Integer, myPad As String) As String
         ' add zero padding character to beginning, limit max size to myLen
-        outField = outField.Replace(Interchange.ElementDelimiter, Interchange.ElementDelimiter_Replace_Char)
+        outField = outField.Replace(Interchange.FieldDelimiter, Interchange.FieldDelimiter_Replace_Char)
         outField = String.Join("", Enumerable.Repeat("0", myLen)) & outField
-        outField = Right(outField, myLen) & Interchange.ElementDelimiter
+        outField = Right(outField, myLen) & Interchange.FieldDelimiter
         Return (outField)
 
     End Function
@@ -251,7 +247,7 @@ Public Class Segment
             End Select
 
             If x < FieldCount - 1 Then
-                Result &= Interchange.ElementDelimiter
+                Result &= Interchange.FieldDelimiter
             End If
         Next
         Return Result

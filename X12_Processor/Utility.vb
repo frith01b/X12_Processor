@@ -104,7 +104,7 @@ Public Class Utility
 
     End Function
 
-    Public Sub WriteUTF8(filename As String)
+    Public Shared Sub WriteUTF8(filename As String)
         ' Write the string as utf-8.
         ' This also writes the 3-byte utf-8 preamble at the beginning of the file.
         Dim appendMode As Boolean = False ' This overwrites the entire file.
@@ -112,4 +112,21 @@ Public Class Utility
         sw.Write("sql text here")
         sw.Close()
     End Sub
+    Public Shared Function VerifyDirList(MyDirs As String()) As Integer
+        ' create directory if doesnt exist, otherwise return array index of failure
+        Dim result As Integer = 0
+        Dim x As Integer
+        For x = 0 To MyDirs.Count - 1
+            If (Not System.IO.Directory.Exists(MyDirs(x))) Then
+                Try
+                    System.IO.Directory.CreateDirectory(MyDirs(x))
+                Catch ex As Exception
+                    result = x + 1
+                    Exit For
+                End Try
+            End If
+        Next
+        Return result
+    End Function
+
 End Class

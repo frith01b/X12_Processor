@@ -1,6 +1,8 @@
 ﻿Option Strict On
 Option Explicit On
 
+
+<Serializable()>
 Public Class PartnerInfo
     ' AS2 Identifier = Partner ID
     Private _PartnerID As String
@@ -10,6 +12,14 @@ Public Class PartnerInfo
     Private _Sender_to_Host_ID As String
     Private _Sender_Qualifier As Object
     Private _Host_Qualifier As Object
+    Property Common_Name As String
+        Get
+            Return _Common_Name
+        End Get
+        Set
+            _Common_Name = Value
+        End Set
+    End Property
 
     ' Adjustments to transaction processing
     Private _Customizations As Dictionary(Of String, String)
@@ -53,6 +63,13 @@ Public Class PartnerInfo
     '    T810_Include_PO4 
     '    Our_Cust_Number
 
+    Public Sub New(MyPartnerID As String)
+        SetPartnerID(MyPartnerID)
+    End Sub
+    Public Sub New()
+        'Default = get from file
+        SetPartnerID("FROM_AS2")
+    End Sub
     Public Function GetHost_Qualifier() As Object
         Return _Host_Qualifier
     End Function
@@ -70,6 +87,7 @@ Public Class PartnerInfo
     End Sub
     ' to X_12 ID Vendor ID to Host ( how they want to identify us when sending
     Private _Host_to_Sender_ID As String
+    Private _Common_Name As String
     ' AS2 Host ID 
     Property Host_ID As String
 
@@ -115,5 +133,15 @@ Public Class PartnerInfo
 
     Public Sub SetPartnerID(AutoPropertyValue As String)
         _PartnerID = AutoPropertyValue
+    End Sub
+
+
+    '**********************************************************
+    Public Sub SavePartnerInfo(MyPartnerFile As String)
+        Dim writer As New System.Xml.Serialization.XmlSerializer(GetType(ConfigInfo))
+        Dim file As New System.IO.StreamWriter(path:=MyPartnerFile)
+        writer.Serialize(file, Me)
+        file.Close()
+
     End Sub
 End Class
