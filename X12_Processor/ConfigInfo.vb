@@ -24,6 +24,7 @@ Public Class ConfigInfo
     Public Shared ConfigDIR As String
     Public Shared FileLoadDir As String
     Public Shared InputFile As String
+    Public Shared InputFileType As File_Format_List
     Public Shared OutputType As File_Format_List
     Public Shared OutputFormatFile As String
     Public Shared OutputDir As String
@@ -137,6 +138,22 @@ LookTwice:
         End Get
         Set(ByVal value As String)
             FileLoadDir = value
+        End Set
+    End Property
+    Property Input_File As String
+        Get
+            Return InputFile
+        End Get
+        Set(ByVal value As String)
+            InputFile = value
+        End Set
+    End Property
+    Property Input_FileType As File_Format_List
+        Get
+            Return InputFileType
+        End Get
+        Set(ByVal value As File_Format_List)
+            InputFileType = value
         End Set
     End Property
     Property Partner_Dir As String

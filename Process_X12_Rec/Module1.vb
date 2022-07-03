@@ -31,17 +31,17 @@ Module Module1
         If (dict_NamedArgs.Count > 0) Then
 
             Dim edi_processor As New X12_Processor.Interchange(dict_NamedArgs)
-            If Interchange.ErrorState = Interchange.Error_Type_List.Normal Then
+            If Not Interchange.hasErrors Then
                 edi_processor.FindFiles()
-                While Interchange.MoreFiles And Interchange.ErrorState = Interchange.Error_Type_List.Normal
+                While Interchange.MoreFiles And Not Interchange.hasErrors
                     'After Import, all segments will be available in CurrentRecordSet 
                     edi_processor.ImportNextFile()
-
+                    ' Validate converts raw data to X12
                     edi_processor.Validate()
-                    If Interchange.ErrorState = Interchange.Error_Type_List.Normal Then
+                    If Not Interchange.hasErrors Then
                         ' PostProcess includes record cleanup, substitutions, filtering, and re-format prep
                         edi_processor.PostProcess()
-                        If Interchange.ErrorState = Interchange.Error_Type_List.Normal Then
+                        If Not Interchange.hasErrors Then
                             ' wont over-write existing, always adds timestamp to processed files and unique Xmit #.
                             edi_processor.Export()
                         Else
@@ -57,7 +57,7 @@ Module Module1
                 End While
 
 
-                If Interchange.ErrorState <> Interchange.Error_Type_List.Normal Then
+                If Not Interchange.hasErrors Then
                     b_success = False
                     Interchange.Dump_X12_Errors()
                 End If

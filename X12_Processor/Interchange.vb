@@ -7,7 +7,7 @@ Imports System.Reflection
 Imports System.Xml
 
 Public Class Interchange
-    Public Shared ErrorState As Boolean = False
+    Public Shared hasErrors As Boolean = False
     Public Shared ErrorMsg() As String
     Public Shared ErrorCount As Integer
     Public Shared ErrorType As Error_Type_List = Error_Type_List.Normal
@@ -40,7 +40,7 @@ Public Class Interchange
     Public CurrentRecordset As RecordSet
 
     Dim InputStream As IO.Stream
-    Dim ProcessFileList As List(Of FileInfo)
+    Dim ProcessFileList As List(Of FileInfo) = New List(Of FileInfo)
     Dim Myfilename As String
     Dim MyOutDir As String
     Private CurrentStore As String
@@ -145,6 +145,12 @@ Public Class Interchange
         If level > ErrorType Then
             ErrorType = level
         End If
+        Select Case ErrorType
+            Case Error_Type_List.Critical
+                hasErrors = True
+            Case Error_Type_List.StdError
+                hasErrors = True
+        End Select
     End Sub
 
     Private Sub LoadPartner(PartnerFileName As String)
@@ -161,24 +167,27 @@ Public Class Interchange
 
         Dim dirlist As IO.FileInfo()
         Dim di As IO.DirectoryInfo
+        Dim input_file As IO.FileInfo
 
         If ConfigInfo.FileLoadDir IsNot Nothing Then
             di = New IO.DirectoryInfo(ConfigInfo.FileLoadDir)
+            ' @TODO  add file import filter by type
             dirlist = di.GetFiles("*.*")
+
+            'list the names of all files in the specified directory
+            For Each input_file In dirlist
+                ProcessFileList.Add(input_file)
+                MoreFiles = True
+            Next
         Else
             ' make 1 entry array
             singlefile = New IO.FileInfo(ConfigInfo.InputFile)
             ReDim Preserve dirlist(0)
             dirlist(0) = singlefile
+            MoreFiles = True
         End If
 
-        Dim input_file As IO.FileInfo
 
-        Dim temp_file As String = ""
-        'list the names of all files in the specified directory
-        For Each input_file In dirlist
-            ProcessFileList.Add(input_file)
-        Next
 
     End Sub
     Public Sub ImportNextFile()
@@ -188,61 +197,67 @@ Public Class Interchange
         If ProcessFileList.Count > 0 Then
 
             NextFilename = ProcessFileList(0).FullName
-            ProcessFileList(0).Delete()
 
-            reader = New StreamReader(NextFilename)
-            '
-            reader.ReadBlock(msg_header, 0, 10)
-            message = msg_header
-            If message.Length > 3 Then
-                If message.Substring(0, 3) = "ISA" Or message.Substring(1, 3) = "ISA" Then
-
-                    message = message & reader.ReadToEnd()
-                    RecordDelimiter = message(105)
-                    FieldDelimiter = message(103)
-                    valid_x12 = True
-                    Try
-                        segments = (From seg In message.Split(CChar(RecordDelimiter)) Where Not String.IsNullOrEmpty(seg)
-                                    Select New ParseSegment(
-                     seg.Substring(0, seg.IndexOf(FieldDelimiter)),
-                    seg.Split(FieldDelimiter).Skip(1).ToArray()))
-
-                    Catch ex As Exception
-                        Debug.Print("Inbound Error X12")
-                        local_errorWriter.Write("ERROR in Split :" & ex.Message)
-                        valid_x12 = False
-                    End Try
-                    pos = message.IndexOf(RecordDelimiter + "ST" + FieldDelimiter)
-                    If pos > 0 Then
-                        rec_type = message.Substring(pos + 4, 3)
-                    Else
-                        valid_x12 = False
-                    End If
-                Else
-                    ' not X12
-                    If message.Substring(0, 3) = """H""" Or message.Substring(1, 3) = """H""" Then
-                        RecordDelimiter = vbCrLf
-                        FieldDelimiter = CChar("~")
+            If ProcessFileList(0).Length > 0 Then
+                reader = New StreamReader(NextFilename)
+                '
+                reader.ReadBlock(msg_header, 0, 10)
+                message = msg_header
+                If message.Length > 3 Then
+                    If message.Substring(0, 3) = "ISA" Or message.Substring(1, 3) = "ISA" Then
+                        reader.DiscardBufferedData()
+                        reader.BaseStream.Seek(0, System.IO.SeekOrigin.Begin)
+                        message = reader.ReadToEnd
+                        '@TODO  verify it matches expected separators
+                        RecordDelimiter = message(105)
+                        FieldDelimiter = message(103)
+                        valid_x12 = True
                         Try
                             segments = (From seg In message.Split(CChar(RecordDelimiter)) Where Not String.IsNullOrEmpty(seg)
                                         Select New ParseSegment(
-                     seg.Substring(0, seg.IndexOf(FieldDelimiter)),
-                    seg.Split(FieldDelimiter).Skip(1).ToArray()))
+                                                 seg.Substring(0, seg.IndexOf(FieldDelimiter)),
+                                                 seg.Split(FieldDelimiter).Skip(1).ToArray()))
 
                         Catch ex As Exception
-                            Debug.Print("outbound error X12")
-                            local_errorWriter.Write("ERROR in Split :" & ex.Message)
+                            AddError("Inbound Error X12", Error_Type_List.Critical)
+
                         End Try
-                        ' found an M2k X12 message
-                        rec_type = segments(0).Elements(1).ToString
-                        rec_type = rec_type.Replace("""", "")
+                        pos = message.IndexOf(RecordDelimiter + "ST" + FieldDelimiter)
+                        If pos > 0 Then
+                            rec_type = message.Substring(pos + 4, 3)
+                        Else
+                            AddError("Start Record not found (ST)", Error_Type_List.Critical)
+                        End If
                     Else
-                        valid_x12 = False
+                        ' not X12
+                        If message.Substring(0, 3) = """H""" Or message.Substring(1, 3) = """H""" Then
+                            RecordDelimiter = vbCrLf
+                            FieldDelimiter = CChar("~")
+                            Try
+                                segments = (From seg In message.Split(CChar(RecordDelimiter)) Where Not String.IsNullOrEmpty(seg)
+                                            Select New ParseSegment(
+                                                seg.Substring(0, seg.IndexOf(FieldDelimiter)),
+                                                seg.Split(FieldDelimiter).Skip(1).ToArray()))
+
+                            Catch ex As Exception
+                                AddError("Parsing error M2K", Error_Type_List.Critical)
+                            End Try
+                            ' found an M2k X12 message
+                            rec_type = segments(0).Elements(1).ToString
+                            rec_type = rec_type.Replace("""", "")
+                        Else
+                            AddError("Header Record not found", Error_Type_List.Critical)
+                        End If
                     End If
+                Else
+                    '@TODO  add message #'s
+                    AddError("Message too short", Error_Type_List.Critical)
                 End If
-            Else
-                valid_x12 = False
             End If
+            ' Remove processed file from list
+            ' @TODO  consider moving if flag set
+            ProcessFileList.RemoveAt(0)
+
         Else
             MoreFiles = False
         End If
@@ -256,14 +271,17 @@ Public Class Interchange
     End Sub
 
     Public Sub Validate()
+        Select Case rec_type
+            Case "850"
 
+        End Select
     End Sub
     Public Shared Sub Dump_X12_Errors()
         Dim X As Integer
-        Console.WriteLine("X12 Error Status:" & Interchange.ErrorState)
+        Console.WriteLine("X12 Error Status:" & Interchange.ErrorType)
         Console.WriteLine("Number of errors:" & Interchange.ErrorCount)
 
-        For X = 0 To Interchange.ErrorCount
+        For X = 0 To Interchange.ErrorCount - 1
             Console.WriteLine(Interchange.ErrorMsg(X))
             Debug.Print(Interchange.ErrorMsg(X))
         Next
