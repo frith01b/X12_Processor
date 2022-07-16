@@ -6,6 +6,7 @@ Imports System.IO
 Imports System.Reflection
 Imports System.Xml
 
+
 Public Class Interchange
     Public Shared hasErrors As Boolean = False
     Public Shared ErrorMsg() As String
@@ -193,10 +194,13 @@ Public Class Interchange
     Public Sub ImportNextFile()
         Dim NextFilename As String
         Dim pos As Integer
-
+        If ConfigInfo.InputFileType = 0 Then
+            ConfigInfo.InputFileType = File_Format_List.X12
+        End If
         If ProcessFileList.Count > 0 Then
 
             NextFilename = ProcessFileList(0).FullName
+            '@TODO  check for input file type, branch on other types
 
             If ProcessFileList(0).Length > 0 Then
                 reader = New StreamReader(NextFilename)
@@ -271,6 +275,47 @@ Public Class Interchange
     End Sub
 
     Public Sub Validate()
+        Select Case ConfigInfo.InputFileType
+            Case File_Format_List.X12
+                Validate_X12()
+            Case File_Format_List.Delimited
+                Validate_Delimited()
+            Case File_Format_List.FixedField
+                Validate_FixedField()
+            Case File_Format_List.SQL
+
+
+
+
+        End Select
+    End Sub
+    Public Sub Validate_X12()
+        Select Case rec_type
+            Case "810"
+            Case "832"
+            Case "850"
+                ' Load Record Set Definition
+                CurrentRecordset = New X12_850_Request_RecordSet
+            Case "855"
+            Case "856"
+            Case Else
+
+        End Select
+    End Sub
+    Public Sub Validate_Delimited()
+        Select Case rec_type
+            Case "850"
+
+        End Select
+    End Sub
+    Public Sub Validate_FixedField()
+        Select Case rec_type
+            Case "850"
+
+        End Select
+    End Sub
+
+    Public Sub Validate_SQL()
         Select Case rec_type
             Case "850"
 

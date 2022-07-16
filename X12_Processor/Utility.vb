@@ -11,6 +11,7 @@ Imports System.IO
 Imports System.Security.Principal
 Imports System.Collections.ObjectModel
 Imports System.Collections.Specialized
+Imports System.Reflection
 
 Public Class Utility
     'Dim str_default() As String = {""}
@@ -127,6 +128,25 @@ Public Class Utility
             End If
         Next
         Return result
+    End Function
+
+
+
+
+    Public Shared Function fetchInstance(ByVal fullyQualifiedClassName As String) As Object
+        ' FullyqualifiedClassName expected similar to  System.Windows.Forms.Button
+        Dim nspc As String = fullyQualifiedClassName.Substring(0, fullyQualifiedClassName.LastIndexOf("."c))
+        Dim o As Object = Nothing
+        Try
+            For Each ay In Assembly.GetExecutingAssembly().GetReferencedAssemblies()
+                If (ay.Name = nspc) Then
+                    o = Assembly.Load(ay).CreateInstance(fullyQualifiedClassName)
+                    Exit For
+                End If
+            Next
+        Catch
+        End Try
+        Return o
     End Function
 
 End Class

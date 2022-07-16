@@ -3,6 +3,11 @@
   <PropertyGroup>
     <RootNamespace>X12_Processor</RootNamespace>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <OptionCompare>Text</OptionCompare>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
 
   <ItemGroup>
@@ -11,9 +16,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.VisualBasic" Version="10.3.0" />
     <PackageReference Include="System.Data.Odbc" Version="6.0.0" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.3" />
+    <PackageReference Include="System.Reflection.Emit" Version="4.7.0" />
     <PackageReference Include="System.Security.Principal.Windows" Version="5.0.0" />
+    <PackageReference Include="XmlToDynamic.Core" Version="1.0.0" />
   </ItemGroup>
 
 </Project>

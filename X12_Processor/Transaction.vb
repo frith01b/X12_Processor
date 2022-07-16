@@ -264,12 +264,29 @@ Public Class Segment
             Dim myFieldDefs As FieldDefSet = DirectCast(xml_serializer.Deserialize(stream_reader),
                                                  FieldDefSet)
             stream_reader.Close()
-
-            Debug.Print("Here")
-
         Else
 
         End If
     End Sub
+
+    ' Public Function serializeObject(obj As Object) As Dictionary(Of String, String)
+    'Dim dict As New Dictionary(Of String, String)
+    'Dim properties As New ArrayList
+
+    'For Each prop As FieldInfo In obj.GetType.GetFields
+    '    properties.Add(prop)
+    'Next
+
+    'For Each prop In properties
+    'Try
+    '        dict.Add(prop.Name, prop.getValue(obj).ToString)
+    '    Catch ex As Exception
+    '        Console.WriteLine(ex.StackTrace)
+    '    End Try
+    'Next
+
+    'Return dict
+
+    'End Function
 
 End Class
