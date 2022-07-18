@@ -65,10 +65,7 @@ Module Module1
                 b_success = False
                 Interchange.Dump_X12_Errors()
             End If
-
         End If
-
-
     End Sub
 
 

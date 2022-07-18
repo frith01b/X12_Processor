@@ -1,12 +1,20 @@
 ﻿Public Class FieldDefSet
     Public Name As String
-    Public FieldDefList() As FieldDef
+    Public FieldDefList As List(Of FieldDef)
+
+
+    ReadOnly Property FieldCount As Integer
+        Get
+            Return FieldDefList.Count
+        End Get
+    End Property
 
     Public Sub New(FieldCount As Integer)
-        ReDim FieldDefList(FieldCount)
+        FieldDefList = New List(Of FieldDef)
+        ' ignore field count, just use list size instead.
     End Sub
     Public Sub New()
-        ReDim FieldDefList(15)
+        FieldDefList = New List(Of FieldDef)
     End Sub
 
 End Class

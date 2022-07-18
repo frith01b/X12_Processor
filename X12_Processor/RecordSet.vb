@@ -6,9 +6,10 @@ Imports System.Dynamic
 Imports System.Xml
 Imports X12_Processor
 Imports XmlToDynamic.Core
+Imports System.Reflection
 
 Interface RecordFunctions
-    Sub Import(Seg As Segment, SourceRecNum As Long)
+    Sub Import_X12(SegID As String, Seg As ParseSegment, SourceRecNum As Long)
     Function GetData() As RecordSet
     ' Filter removes extraneous notes/data
     Function Filter() As String()
@@ -23,6 +24,7 @@ Interface RecordFunctions
 
     Property Fields As Dictionary(Of String, ExpandoObject)
 
+
 End Interface
 
 Public Class RecordSet
@@ -31,13 +33,14 @@ Public Class RecordSet
     Dim RecSetDefFile As String
     Public Shared DefRec_Count As Long
     Dim Rec_Count As Long
-    Dim RecData() As String
+    Dim RecData() As Segment
     '  Dim myxmlDyn As XmlToDynamic.Core.Extensions
 
     Dim RecDefObj As ExpandoObject
+    Dim RecordPtr As Object
 
     Shared TypedRecDef() As RecDefItem
-    Shared RecDefList As List(Of RecDefItem)
+    Public RecDefList As List(Of RecDefItem)
     Public Sub New()
 
     End Sub
@@ -54,8 +57,42 @@ Public Class RecordSet
         End Set
     End Property
 
-    Public Sub Import(Seg As Segment, SourceRecNum As Long) Implements RecordFunctions.Import
-        Throw New NotImplementedException()
+    Public Sub Import_X12(SegID As String, Seg As ParseSegment, SourceRecNum As Long) Implements RecordFunctions.Import_X12
+        'Dim fullyQualifiedClassName As String = "System.Windows.Forms.Button"
+        'Dim o = fetchInstance(fullyQualifiedClassName)
+        '' sometime later where you can narrow down the type or interface...
+        'Dim b = CType(o, Control)
+
+        Dim NewRec As Segment
+        Dim Recname As String
+        Dim CastRec As SegTranslate
+        Dim testtype As ISA = New ISA
+        Dim type As Type = testtype.GetType()
+        Dim typeName As String = type.FullName
+        If Interchange.debugflag Then
+
+            Debug.Print(typeName)
+        End If
+        Seg.SegID = SegID.Replace(vbLf, "")
+        Seg.SegID = SegID.Replace(vbCr, "")
+
+        Recname = "X12_Processor." & SegID
+        NewRec = fetchInstance(Recname)
+        ' cast to interface type(segtranslate) so we can use methods & properties directly
+        CastRec = CType(NewRec, SegTranslate)
+        If CastRec.FieldCount = 0 Then
+            CastRec.InitializeTranDef()
+            ' CastRec.SaveTranDef()
+            ' CastRec.LoadFieldDef()
+        End If
+        CastRec.Import(Seg, SourceRecNum)
+        If Interchange.debugflag Then
+
+            For Each myfield In CastRec.Fields
+                Debug.Print(myfield.Key & "  " & myfield.Value)
+            Next
+        End If
+
     End Sub
 
     Public Sub ReMap() Implements RecordFunctions.ReMap
@@ -88,12 +125,22 @@ Public Class RecordSet
                     End Select
                 End If
             Next
-            Debug.Print(RecDefList.Count & "  " & DefRec_Count)
+            If Interchange.debugflag Then
+
+                Debug.Print(RecDefList.Count & "  " & DefRec_Count)
+            End If
+
         End If
+            RecordPtr = RecDefList(0)
+
     End Sub
 
     Public Sub Save_RecordDef() Implements RecordFunctions.Save_RecordDef
-        Throw New NotImplementedException()
+        ' remember  [gettype]()  for current object type
+        Dim writer As New System.Xml.Serialization.XmlSerializer([GetType]())
+        Dim file As New System.IO.StreamWriter(path:=RecSetDefFile)
+        writer.Serialize(file, Me)
+        file.Close()
     End Sub
 
     Public Function GetData() As RecordSet Implements RecordFunctions.GetData
@@ -150,17 +197,23 @@ Public Class RecordSet
                             myrecdefitem = New RecDefItem
                             MakeLoop(myDefBlob(x).Value, myrecdefitem)
                             NewRecDefList.Add(myrecdefitem)
-                            Debug.Print("Loop1 " & NewRecDefList.Count & "-" & NewRecDefList(NewRecDefList.Count - 1).recname & " T" & NewRecDefList(NewRecDefList.Count - 1).mytype & " E" & NewRecDefList(NewRecDefList.Count - 1).EndTrigger & " #" & NewRecDefList(NewRecDefList.Count - 1).Seq & " L" & NewRecDefList(NewRecDefList.Count - 1).LastRecord & " M" & NewRecDefList(NewRecDefList.Count - 1).Mandatory)
+                            If Interchange.debugflag Then
+
+                                Debug.Print("Loop1 " & NewRecDefList.Count & "-" & NewRecDefList(NewRecDefList.Count - 1).recname & " T" & NewRecDefList(NewRecDefList.Count - 1).mytype & " E" & NewRecDefList(NewRecDefList.Count - 1).EndTrigger & " #" & NewRecDefList(NewRecDefList.Count - 1).Seq & " L" & NewRecDefList(NewRecDefList.Count - 1).LastRecord & " M" & NewRecDefList(NewRecDefList.Count - 1).Mandatory)
+                            End If
 
                         Else
-                            ' multiple loops together
-                            myloopList = myDefBlob(x).Value
+                                ' multiple loops together
+                                myloopList = myDefBlob(x).Value
                             For Each myloop In myloopList
                                 DefRec_Count = DefRec_Count + 1
                                 myrecdefitem = New RecDefItem
                                 MakeLoop(myloop, myrecdefitem)
                                 NewRecDefList.Add(myrecdefitem)
-                                Debug.Print("LoopM " & NewRecDefList.Count & "-" & NewRecDefList(NewRecDefList.Count - 1).recname & " T" & NewRecDefList(NewRecDefList.Count - 1).mytype & " E" & NewRecDefList(NewRecDefList.Count - 1).EndTrigger & " #" & NewRecDefList(NewRecDefList.Count - 1).Seq & " L" & NewRecDefList(NewRecDefList.Count - 1).LastRecord & " M" & NewRecDefList(NewRecDefList.Count - 1).Mandatory)
+                                If Interchange.debugflag Then
+
+                                    Debug.Print("LoopM " & NewRecDefList.Count & "-" & NewRecDefList(NewRecDefList.Count - 1).recname & " T" & NewRecDefList(NewRecDefList.Count - 1).mytype & " E" & NewRecDefList(NewRecDefList.Count - 1).EndTrigger & " #" & NewRecDefList(NewRecDefList.Count - 1).Seq & " L" & NewRecDefList(NewRecDefList.Count - 1).LastRecord & " M" & NewRecDefList(NewRecDefList.Count - 1).Mandatory)
+                                End If
 
                             Next myloop
                         End If
@@ -169,15 +222,22 @@ Public Class RecordSet
                         If TypeOf myDefBlob(x).Value Is ExpandoObject Then
                             DefRec_Count = DefRec_Count + 1
                             NewRecDefList.Add(MakeRecDef(myDefBlob(x).Value))
-                            Debug.Print("Rec1 " & NewRecDefList.Count & "-" & NewRecDefList(NewRecDefList.Count - 1).recname & " T" & NewRecDefList(NewRecDefList.Count - 1).mytype & " E" & NewRecDefList(NewRecDefList.Count - 1).EndTrigger & " #" & NewRecDefList(NewRecDefList.Count - 1).Seq & " L" & NewRecDefList(NewRecDefList.Count - 1).LastRecord & " M" & NewRecDefList(NewRecDefList.Count - 1).Mandatory)
+                            If Interchange.debugflag Then
+
+                                Debug.Print("Rec1 " & NewRecDefList.Count & "-" & NewRecDefList(NewRecDefList.Count - 1).recname & " T" & NewRecDefList(NewRecDefList.Count - 1).mytype & " E" & NewRecDefList(NewRecDefList.Count - 1).EndTrigger & " #" & NewRecDefList(NewRecDefList.Count - 1).Seq & " L" & NewRecDefList(NewRecDefList.Count - 1).LastRecord & " M" & NewRecDefList(NewRecDefList.Count - 1).Mandatory)
+                            End If
 
                         Else
-                            ' multiple records together
-                            myloopList = myDefBlob(x).Value
+                                ' multiple records together
+                                myloopList = myDefBlob(x).Value
                             For Each myloop In myloopList
                                 DefRec_Count = DefRec_Count + 1
                                 NewRecDefList.Add(MakeRecDef(myloop))
-                                Debug.Print("RecM " & NewRecDefList.Count & "-" & NewRecDefList(NewRecDefList.Count - 1).recname & " T" & NewRecDefList(NewRecDefList.Count - 1).mytype & " E" & NewRecDefList(NewRecDefList.Count - 1).EndTrigger & " #" & NewRecDefList(NewRecDefList.Count - 1).Seq & " L" & NewRecDefList(NewRecDefList.Count - 1).LastRecord & " M" & NewRecDefList(NewRecDefList.Count - 1).Mandatory)
+                                If Interchange.debugflag Then
+
+                                    Debug.Print("RecM " & NewRecDefList.Count & "-" & NewRecDefList(NewRecDefList.Count - 1).recname & " T" & NewRecDefList(NewRecDefList.Count - 1).mytype & " E" & NewRecDefList(NewRecDefList.Count - 1).EndTrigger & " #" & NewRecDefList(NewRecDefList.Count - 1).Seq & " L" & NewRecDefList(NewRecDefList.Count - 1).LastRecord & " M" & NewRecDefList(NewRecDefList.Count - 1).Mandatory)
+                                End If
+
                             Next myloop
                         End If
 
@@ -253,7 +313,9 @@ Public Class RecordSet
                         myRecDefItem = New RecDefItem
                         MakeLoop(myDefBlob(x).Value, myRecDefItem)
                         NewDefList.Add(myRecDefItem)
-                        Debug.Print("Loop1 " & NewDefList.Count & "-" & NewDefList(NewDefList.Count - 1).recname & " T" & NewDefList(NewDefList.Count - 1).mytype & " E" & NewDefList(NewDefList.Count - 1).EndTrigger & " #" & NewDefList(NewDefList.Count - 1).Seq & " L" & NewDefList(NewDefList.Count - 1).LastRecord & " M" & NewDefList(NewDefList.Count - 1).Mandatory)
+                        If Interchange.debugflag Then
+                            Debug.Print("Loop1 " & NewDefList.Count & "-" & NewDefList(NewDefList.Count - 1).recname & " T" & NewDefList(NewDefList.Count - 1).mytype & " E" & NewDefList(NewDefList.Count - 1).EndTrigger & " #" & NewDefList(NewDefList.Count - 1).Seq & " L" & NewDefList(NewDefList.Count - 1).LastRecord & " M" & NewDefList(NewDefList.Count - 1).Mandatory)
+                        End If
 
                     Else
                         ' multiple loops together
@@ -263,7 +325,11 @@ Public Class RecordSet
                             myRecDefItem = New RecDefItem
                             MakeLoop(myloop, myRecDefItem)
                             NewDefList.Add(myRecDefItem)
-                            Debug.Print("LoopM " & NewDefList.Count & "-" & NewDefList(NewDefList.Count - 1).recname & " T" & NewDefList(NewDefList.Count - 1).mytype & " E" & NewDefList(NewDefList.Count - 1).EndTrigger & " #" & NewDefList(NewDefList.Count - 1).Seq & " L" & NewDefList(NewDefList.Count - 1).LastRecord & " M" & NewDefList(NewDefList.Count - 1).Mandatory)
+                            If Interchange.debugflag Then
+
+                                Debug.Print("LoopM " & NewDefList.Count & "-" & NewDefList(NewDefList.Count - 1).recname & " T" & NewDefList(NewDefList.Count - 1).mytype & " E" & NewDefList(NewDefList.Count - 1).EndTrigger & " #" & NewDefList(NewDefList.Count - 1).Seq & " L" & NewDefList(NewDefList.Count - 1).LastRecord & " M" & NewDefList(NewDefList.Count - 1).Mandatory)
+                            End If
+
                         Next myloop
 
                     End If
@@ -271,15 +337,21 @@ Public Class RecordSet
                     If TypeOf myDefBlob(x).Value Is ExpandoObject Then
                         DefRec_Count = DefRec_Count + 1
                         NewDefList.Add(MakeRecDef(myDefBlob(x).Value))
-                        Debug.Print("Rec1 " & NewDefList.Count & "-" & NewDefList(NewDefList.Count - 1).recname & " T" & NewDefList(NewDefList.Count - 1).mytype & " E" & NewDefList(NewDefList.Count - 1).EndTrigger & " #" & NewDefList(NewDefList.Count - 1).Seq & " L" & NewDefList(NewDefList.Count - 1).LastRecord & " M" & NewDefList(NewDefList.Count - 1).Mandatory)
+                        If Interchange.debugflag Then
+
+                            Debug.Print("Rec1 " & NewDefList.Count & "-" & NewDefList(NewDefList.Count - 1).recname & " T" & NewDefList(NewDefList.Count - 1).mytype & " E" & NewDefList(NewDefList.Count - 1).EndTrigger & " #" & NewDefList(NewDefList.Count - 1).Seq & " L" & NewDefList(NewDefList.Count - 1).LastRecord & " M" & NewDefList(NewDefList.Count - 1).Mandatory)
+                        End If
 
                     Else
-                        ' multiple loops together
-                        myloopList = myDefBlob(x).Value
+                            ' multiple loops together
+                            myloopList = myDefBlob(x).Value
                         For Each myloop In myloopList
                             DefRec_Count = DefRec_Count + 1
                             NewDefList.Add(MakeRecDef(myloop))
-                            Debug.Print("RecM " & NewDefList.Count & "-" & NewDefList(NewDefList.Count - 1).recname & " T" & NewDefList(NewDefList.Count - 1).mytype & " E" & NewDefList(NewDefList.Count - 1).EndTrigger & " #" & NewDefList(NewDefList.Count - 1).Seq & " L" & NewDefList(NewDefList.Count - 1).LastRecord & " M" & NewDefList(NewDefList.Count - 1).Mandatory)
+                            If Interchange.debugflag Then
+
+                                Debug.Print("RecM " & NewDefList.Count & "-" & NewDefList(NewDefList.Count - 1).recname & " T" & NewDefList(NewDefList.Count - 1).mytype & " E" & NewDefList(NewDefList.Count - 1).EndTrigger & " #" & NewDefList(NewDefList.Count - 1).Seq & " L" & NewDefList(NewDefList.Count - 1).LastRecord & " M" & NewDefList(NewDefList.Count - 1).Mandatory)
+                            End If
 
                         Next myloop
                     End If
@@ -293,6 +365,18 @@ Public Class RecordSet
 
     Function GetRecList(RecType As String) As List(Of RecDefItem)
         Return RecDefList
+    End Function
+
+    ' helper method used for Import function to create dynamic segment types
+    Private Function fetchInstance(ByVal fullyQualifiedClassName As String) As Object
+        Dim nspc As String = fullyQualifiedClassName.Substring(0, fullyQualifiedClassName.LastIndexOf("."c))
+        Dim o As Object = Nothing
+        Try
+            o = Assembly.GetExecutingAssembly().CreateInstance(fullyQualifiedClassName)
+        Catch
+            Interchange.AddError("Error Creating object" & fullyQualifiedClassName, Interchange.Error_Type_List.StdError)
+        End Try
+        Return o
     End Function
 
 End Class

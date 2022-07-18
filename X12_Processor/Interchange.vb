@@ -5,9 +5,12 @@ Imports System.Data
 Imports System.IO
 Imports System.Reflection
 Imports System.Xml
+Imports X12_Processor
+
 
 
 Public Class Interchange
+    Public Shared debugflag As Boolean = False
     Public Shared hasErrors As Boolean = False
     Public Shared ErrorMsg() As String
     Public Shared ErrorCount As Integer
@@ -215,6 +218,7 @@ Public Class Interchange
                         '@TODO  verify it matches expected separators
                         RecordDelimiter = message(105)
                         FieldDelimiter = message(103)
+                        SubFieldDelimiter = message(104)
                         valid_x12 = True
                         Try
                             segments = (From seg In message.Split(CChar(RecordDelimiter)) Where Not String.IsNullOrEmpty(seg)
@@ -230,7 +234,23 @@ Public Class Interchange
                         If pos > 0 Then
                             rec_type = message.Substring(pos + 4, 3)
                         Else
-                            AddError("Start Record not found (ST)", Error_Type_List.Critical)
+                            RecordDelimiter = vbCrLf
+                            pos = message.IndexOf(RecordDelimiter + "ST" + FieldDelimiter)
+                            If pos > 0 Then
+                                rec_type = message.Substring(pos + 5, 3)
+                                Try
+                                    segments = (From seg In message.Split(CChar(RecordDelimiter)) Where Not String.IsNullOrEmpty(seg)
+                                                Select New ParseSegment(
+                                                 seg.Substring(0, seg.IndexOf(FieldDelimiter)),
+                                                 seg.Split(FieldDelimiter).Skip(1).ToArray()))
+
+                                Catch ex As Exception
+                                    AddError("Inbound Error X12", Error_Type_List.Critical)
+
+                                End Try
+                            Else
+                                AddError("Start Record not found (ST) in file " & NextFilename, Error_Type_List.Critical)
+                            End If
                         End If
                     Else
                         ' not X12
@@ -296,6 +316,7 @@ Public Class Interchange
             Case "850"
                 ' Load Record Set Definition
                 CurrentRecordset = New X12_850_Request_RecordSet
+                Merge_Data()
             Case "855"
             Case "856"
             Case Else
@@ -330,6 +351,29 @@ Public Class Interchange
             Console.WriteLine(Interchange.ErrorMsg(X))
             Debug.Print(Interchange.ErrorMsg(X))
         Next
+    End Sub
+    Public Sub Merge_Data()
+        Dim myrecid As String
+        Dim Prev_Rec As String = ""
+
+        'RecSetDefFile
+        For Each rec In segments
+            RecordCount = RecordCount + 1
+            myrecid = rec.SegID.Replace("""", "")
+            myrecid = rec.SegID.Replace(vbCr, "")
+            myrecid = rec.SegID.Replace(vbLf, "")
+            CurrentRecordset.Import_X12(myrecid, rec, RecordCount)
+
+
+
+            ' need to generate CTT & SE & GE & IEA
+            If DebugFlag Then
+                Debug.Print("Next" + myrecid)
+            End If
+            Prev_Rec = myrecid
+        Next ' rec in segments
+
+
     End Sub
 
 End Class
