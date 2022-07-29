@@ -12,5 +12,7 @@
         SegLoops = New List(Of Rec_Data_Type)
         Parent = Nothing
     End Sub
-
+    Public Sub add(mySegment As Rec_Data_Type)
+        SegData.Add(mySegment)
+    End Sub
 End Class

@@ -111,7 +111,7 @@ Public Class RecordSet
             Rec_Data(0) = New Rec_Data_Type
             Rec_DataPtr = Rec_Data
         End If
-        FindNextSegment(castRec)
+        FindNextSegment(castRec, Rec_DataPtr)
         ' if only new records added
 
 
@@ -408,7 +408,7 @@ Public Class RecordSet
         Else
             ' first record
             If MySegment.RecordName = RecDefList(0).recname Then
-                RecordDefPtr.add(MySegment)
+                DirectCast(RecordDefPtr, Rec_Data_Type).add(MySegment)
                 retVal = True
             Else
                 Interchange.AddError("First Record does not match definition :Found " & MySegment.RecordName & " looking for: " & RecDefList(0).recname, Interchange.Error_Type_List.StdError)
