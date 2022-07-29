@@ -44,7 +44,7 @@ Public Class PartnerInfo
     '    T810_Include_CAD 
     '    T810_Cad_F2_Prefix 
     '    T810_Alt_Cad_Layout 
-    '    T810_IT1_Nemco_Item_Qual 
+    '    T810_IT1_Item_Qual 
     '    T810_IT1_Customer_Item_Qual 
     '    T810_CTP_F8_Amt 
     '    T810_ITD_Terms 

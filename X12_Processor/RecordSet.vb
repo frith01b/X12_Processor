@@ -22,22 +22,29 @@ Interface RecordFunctions
 
     Sub Save_RecordDef()
 
-    Property Fields As Dictionary(Of String, ExpandoObject)
-
+    Property PrevSegSeq As Long
 
 End Interface
 
 Public Class RecordSet
     Inherits DynamicObject
     Implements RecordFunctions
+    ' _LastSeq: keeps track of prior record position in definition.
+    Dim _PrevSegSeq As Long = 0
     Dim RecSetDefFile As String
     Public Shared DefRec_Count As Long
-    Dim Rec_Count As Long
-    Dim RecData() As Segment
+    Dim Rec_Count As Long = 0
+    ' ReCData = Decoded actual record data.
+    Dim Rec_Data() As Rec_Data_Type
+    ' Rec_DataPtr :  Point to current array for new records in correct definition loop for Rec_Data
+    Dim Rec_DataPtr As Object
+
     '  Dim myxmlDyn As XmlToDynamic.Core.Extensions
 
+    ' RecDefObj = placeholder for incoming dynamic definition prior to de-coding
     Dim RecDefObj As ExpandoObject
-    Dim RecordPtr As Object
+    'RecordDefPtr = point to current definition area.
+    Dim RecordDefPtr As Object
 
     Shared TypedRecDef() As RecDefItem
     Public RecDefList As List(Of RecDefItem)
@@ -48,12 +55,12 @@ Public Class RecordSet
 
     End Sub
 
-    Public Property Fields As Dictionary(Of String, ExpandoObject) Implements RecordFunctions.Fields
+    Public Property PrevSegSeq As Long Implements RecordFunctions.PrevSegSeq
         Get
-            Throw New NotImplementedException()
+            Return _PrevSegSeq
         End Get
-        Set(value As Dictionary(Of String, ExpandoObject))
-            Throw New NotImplementedException()
+        Set(value As Long)
+            _PrevSegSeq = value
         End Set
     End Property
 
@@ -73,6 +80,7 @@ Public Class RecordSet
 
             Debug.Print(typeName)
         End If
+        ' split worked well,but leaves extra  bytes in segment identifier
         Seg.SegID = SegID.Replace(vbLf, "")
         Seg.SegID = SegID.Replace(vbCr, "")
 
@@ -92,6 +100,20 @@ Public Class RecordSet
                 Debug.Print(myfield.Key & "  " & myfield.Value)
             Next
         End If
+
+        'InsertRecData:  place castrec in Rec_Data structure matching hierarchy
+        InsertRecData(CastRec)
+    End Sub
+
+    Private Sub InsertRecData(castRec As SegTranslate)
+        If Rec_Count = 0 Then
+            ReDim Rec_Data(Rec_Data.Count)
+            Rec_Data(0) = New Rec_Data_Type
+            Rec_DataPtr = Rec_Data
+        End If
+        FindNextSegment(castRec)
+        ' if only new records added
+
 
     End Sub
 
@@ -131,7 +153,7 @@ Public Class RecordSet
             End If
 
         End If
-            RecordPtr = RecDefList(0)
+        RecordDefPtr = RecDefList(0)
 
     End Sub
 
@@ -217,7 +239,7 @@ Public Class RecordSet
 
                             Next myloop
                         End If
-                   ' Case "RECDEF"
+
                     Case "REC_LIST"
                         If TypeOf myDefBlob(x).Value Is ExpandoObject Then
                             DefRec_Count = DefRec_Count + 1
@@ -379,4 +401,19 @@ Public Class RecordSet
         Return o
     End Function
 
+    Function FindNextSegment(MySegment As SegTranslate, MyObj As Object) As Boolean
+        Dim retVal As Boolean = False
+
+        If (_PrevSegSeq > 0) Then
+        Else
+            ' first record
+            If MySegment.RecordName = RecDefList(0).recname Then
+                RecordDefPtr.add(MySegment)
+                retVal = True
+            Else
+                Interchange.AddError("First Record does not match definition :Found " & MySegment.RecordName & " looking for: " & RecDefList(0).recname, Interchange.Error_Type_List.StdError)
+            End If
+        End If
+        Return retVal
+    End Function
 End Class

@@ -9,29 +9,35 @@ Imports X12_Processor
 
 ' @TODO  Sub-field processing
 ' @TODO  Load_Field_Config() (XML)
-
-Interface SegTranslate
+' SegTranslate: interface is used to allow accessing detail object record references (ISA, GS, etc) generically.
+Public Interface SegTranslate
+    ' Recordname: used to identify proper processing method and object hierarchy
     Property RecordName As String
+    'RecordLength: overall import length of data for validation checking
     Property RecordLength As Integer
     Property FieldDefs As FieldDefSet
     Property FieldCount As Integer
     Property FieldDefFile As String
+    ' Fields contain actual input data
     Property Fields As Dictionary(Of String, String)
+    'RecIndex used for actual data records to maintain order of input/output
+    Property RecIndex As Long
     Sub InitializeTranDef()
     Sub Import(Seg As ParseSegment, SourceRecNum As Long)
     Sub ReMap()
     Sub LoadFieldDef()
     Sub SaveTranDef()
 
-
     ' Filter removes extraneous notes/data
     Function Filter() As String()
     Function Gen_FixedLength_Record(ByRef MyTrans As Segment) As String
     Function GetData() As Segment
-    'Remap adjusts incoming data to correct item #'s, code values , etc
+    'Output_X12:Remap adjusts incoming data to correct item #'s, code values , etc
     Function Output_X12() As String
     Function Validate() As Boolean
     Function Gen_X12_Record(InRec As Segment) As String
+
+
 
 End Interface
 
@@ -45,6 +51,7 @@ Public Class Segment
     Dim _FieldDefs As FieldDefSet
     Dim _FieldCount As Integer
     Dim _FieldDefFile As String
+    Dim _RecIndex As Long
 
     Private _Fields As Dictionary(Of String, String)
     Public Sub New(RecType As String)
@@ -117,6 +124,15 @@ Public Class Segment
         End Get
         Set(value As String)
             _FieldDefFile = value
+        End Set
+    End Property
+
+    Public Property RecIndex As Long Implements SegTranslate.RecIndex
+        Get
+            Return _RecIndex
+        End Get
+        Set(value As Long)
+            _RecIndex = value
         End Set
     End Property
 
@@ -348,6 +364,7 @@ Public Class Segment
         writer.Serialize(file, Me)
         file.Close()
     End Sub
+
 
     ' Public Function serializeObject(obj As Object) As Dictionary(Of String, String)
     'Dim dict As New Dictionary(Of String, String)
