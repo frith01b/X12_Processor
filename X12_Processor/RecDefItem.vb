@@ -13,6 +13,16 @@ Public Class RecDefItem
     Private _myloop As List(Of RecDefItem)
     Private _LastRecord As String
     Private _Mandatory As String
+    Private _Parent As Object
+
+    Property Parent As Object
+        Get
+            Return _Parent
+        End Get
+        Set
+            _Parent = Value
+        End Set
+    End Property
 
     Property Seq As String
         Get

@@ -8,6 +8,11 @@
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <PlatformTarget>AnyCPU</PlatformTarget>
+    <DocumentationFile>X12_Processor.xml</DocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DocumentationFile>X12_Processor.xml</DocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,6 +21,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="docfx.console" Version="2.59.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.VisualBasic" Version="10.3.0" />
     <PackageReference Include="System.Data.Odbc" Version="6.0.0" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.3" />

@@ -7,10 +7,13 @@ Imports System.Reflection
 Imports System.Xml
 Imports X12_Processor
 
-
+''' <summary>
+''' 
+''' </summary>
 
 Public Class Interchange
-    Public Shared debugflag As Boolean = False
+    ' debugflag: print extra messages during execution
+    Public Shared debugflag As Boolean = True
     Public Shared hasErrors As Boolean = False
     Public Shared ErrorMsg() As String
     Public Shared ErrorCount As Integer
@@ -22,7 +25,7 @@ Public Class Interchange
     Public Shared SubFieldDelimiter As Char = CChar(">")
 
     'Delimiter_Replace_Char:  character used to replace field data containing 
-    'delimiters with, so records can be parsed properly later
+    '''delimiters with, so records can be parsed properly later
     Public Shared Record_Delimiter_Replace_Char As String = "!"
     Public Shared FieldDelimiter_Replace_Char As String = "["
     Public Shared SubFieldDelimiter_Replace_Char As String = "]"
@@ -52,7 +55,7 @@ Public Class Interchange
     Private msg_header(500) As Char
 
     Private message As String
-
+    '''last used transaction number, increase by 1 for each new dataset transmission
     Private rec_850_seq As Long
     Private rec_855_seq As Long
     Private rec_856_seq As Long
@@ -61,7 +64,7 @@ Public Class Interchange
     Private replace_char As String = "-"
 
     Dim Fileptr As System.IO.StreamWriter
-    ' un-processed record and field separated initial data from file
+    ''' un-processed record and field separated initial data from file
     Dim segments As IEnumerable(Of ParseSegment)
 
 
@@ -70,7 +73,8 @@ Public Class Interchange
     Dim local_errorWriter As TextWriter
     '*********************END OF CLASS VARIABLES ***************************
 
-    'input_file.Name, s_ErrorFile, s_ConfigFile, s_PartnerID)
+    '''input_file.Name, s_ErrorFile, s_ConfigFile, s_PartnerID)
+    '''
     Public Sub New(dict_Arguments As Dictionary(Of String, String))
 
         Dim SaveDefault As Boolean = False
@@ -97,7 +101,7 @@ Public Class Interchange
             SaveDefault = True
         End If
 
-        ' arguments can over-ride config file vales
+        'arguments can over-ride config file vales
         dict_Arguments.TryGetValue("OUTDIR", s_OutDir)
         If s_OutDir IsNot Nothing Then
             CurrentConfigInfo.Output_Dir = s_OutDir
@@ -140,6 +144,11 @@ Public Class Interchange
 
     End Sub
 
+    ''' <summary>
+    ''' 
+    ''' </summary>
+    ''' <param name="NewErrorMsg"></param>
+    ''' <param name="level"></param>
     Public Shared Sub AddError(NewErrorMsg As String, level As Error_Type_List)
         ErrorCount = ErrorCount + 1
         If ErrorCount <= 10000 Then
@@ -157,6 +166,10 @@ Public Class Interchange
         End Select
     End Sub
 
+    ''' <summary>
+    ''' 
+    ''' </summary>
+    ''' <param name="PartnerFileName"></param>
     Private Sub LoadPartner(PartnerFileName As String)
         Dim xmlFile As XmlReader
         xmlFile = XmlReader.Create(PartnerFileName, New XmlReaderSettings())
@@ -167,6 +180,9 @@ Public Class Interchange
 
         Next
     End Sub
+    ''' <summary>
+    ''' 
+    ''' </summary>
     Public Sub FindFiles()
 
         Dim dirlist As IO.FileInfo()
@@ -194,6 +210,10 @@ Public Class Interchange
 
 
     End Sub
+
+    ''' <summary>
+    ''' 
+    ''' </summary>
     Public Sub ImportNextFile()
         Dim NextFilename As String
         Dim pos As Integer
@@ -367,7 +387,7 @@ Public Class Interchange
 
 
             ' need to generate CTT & SE & GE & IEA
-            If DebugFlag Then
+            If debugflag Then
                 Debug.Print("Next" + myrecid)
             End If
             Prev_Rec = myrecid

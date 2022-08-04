@@ -11,7 +11,6 @@
 
     Public Sub New(FieldCount As Integer)
         FieldDefList = New List(Of FieldDef)
-        ' ignore field count, just use list size instead.
     End Sub
     Public Sub New()
         FieldDefList = New List(Of FieldDef)

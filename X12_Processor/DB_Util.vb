@@ -5,17 +5,17 @@ Imports System.Data
 Imports System.Data.SqlClient
 Imports System.IO
 Imports System.Data.Odbc
-' Version 2.0
-'Imports System.ServiceProcess
-' example connection strings.
-'    Const s_conn As String = "Server=ServerName.prod.corp.com;database=OneTouchBE;UID=Domain\serviceAcct;PWD=********;Trusted Connection=false"
-'Const s_conn_iseries As String = "DSN=PROD_UC;DBQ=QGPL;UID=svcAcct;PWD=********;CommandTimeout=120;executionTimeout=240"
-'
-' Example creation statement 
-'        Dim db_Sql As SQL = New SQL(s_conn, tw_errorWriter)
-'
-' if failure,  app should check ErrorEx   for SQLException Info.
-'*******************************************************************************
+''' Version 2.0
+'''Imports System.ServiceProcess
+''' example connection strings.
+'''    Const s_conn As String = "Server=ServerName.prod.corp.com;database=OneTouchBE;UID=Domain\serviceAcct;PWD=********;Trusted Connection=false"
+'''Const s_conn_iseries As String = "DSN=PROD_UC;DBQ=QGPL;UID=svcAcct;PWD=********;CommandTimeout=120;executionTimeout=240"
+'''
+''' Example creation statement 
+'''        Dim db_Sql As SQL = New SQL(s_conn, tw_errorWriter)
+'''
+''' if failure,  app should check ErrorEx   for SQLException Info.
+'''*******************************************************************************
 
 Public Class DB_Util
     Implements IDisposable
@@ -26,7 +26,7 @@ Public Class DB_Util
     End Enum
 
     Private s_conn As String
-    ' 1 or higher = print debug messages, 0 = no additional mesgs
+    ''' 1 or higher = print debug messages, 0 = no additional mesgs
     Private DEBUG_FLAG As Integer = 0
 
     WithEvents sql_con As SqlConnection
@@ -43,7 +43,7 @@ Public Class DB_Util
 
     Private paramCmd As SqlCommand
 
-    '***************************************************************************************
+    '''***************************************************************************************
 
     Public Sub New(ByVal s_db_conn As String, ByVal NewDbType As DB_TYPE, ByRef my_errorWriter As TextWriter)
         s_conn = s_db_conn
@@ -53,14 +53,12 @@ Public Class DB_Util
         OpenDatabase()
 
     End Sub
-    '***************************************************************************************
-
-
-
-    ' substituted function must match DoRowMethod Method Signature exactly.
+    '''***************************************************************************************
+    ''' substituted function must match DoRowMethod Method Signature exactly.
 
     Public Sub DoRowMethod(NewData As DataTable)
-        If Not _RowProcessor = Nothing Then 'check to see if there is anything to Invoke
+        'check to see if there is anything to Invoke
+        If Not _RowProcessor = Nothing Then
             Try
                 _RowProcessor.DynamicInvoke(NewData)
             Catch ex As SqlException
@@ -70,19 +68,17 @@ Public Class DB_Util
 
         End If
     End Sub
-    '***************************************************************************************
+    '''***************************************************************************************
     Public Sub AddRowProcessor(ByVal MyMethod As RowMethod)
         _RowProcessor = MulticastDelegate.Combine(_RowProcessor, MyMethod)
     End Sub
-    '***************************************************************************************
+    '''***************************************************************************************
     Public Sub RemoveProcessor(ByVal MyMethod As RowMethod)
         _RowProcessor = MulticastDelegate.Remove(_RowProcessor, MyMethod)
     End Sub
 
-    '***************************************************************************************
-
-
-    'Generic Version
+    '''***************************************************************************************
+    '''Generic Version
     Function OpenDatabase() As Boolean
         If e_CurrDbType = DB_TYPE.MSSQL Then
             Return OpenDatabase(sql_con)
@@ -92,8 +88,8 @@ Public Class DB_Util
         End If
         Return False
     End Function
-    '***************************************************************************************
-    ' MS SQL Version
+    '''***************************************************************************************
+    ''' MS SQL Version
     Function OpenDatabase(ByRef db_con As SqlConnection) As Boolean
         Dim ErrorVal As Boolean
         ErrorVal = True
@@ -109,8 +105,8 @@ Public Class DB_Util
         OpenDatabase = ErrorVal
 
     End Function
-    '***************************************************************************************
-    ' ODBC Version 
+    '''***************************************************************************************
+    ''' ODBC Version 
     Function OpenDatabase(ByRef db_con As OdbcConnection) As Boolean
         Dim ErrorVal As Boolean
         ErrorVal = True
@@ -127,7 +123,7 @@ Public Class DB_Util
         OpenDatabase = ErrorVal
 
     End Function
-    '***************************************************************************************
+    '''***************************************************************************************
     Function GatherData(sql As String, ByRef ds As DataSet) As Boolean
         Dim RetVal As Boolean = True
 
@@ -140,7 +136,7 @@ Public Class DB_Util
         Return RetVal
     End Function
 
-    '***************************************************************************************
+    '''***************************************************************************************
     Function GatherData(sql As String, ByRef ds As DataSet, ByRef db_con As SqlConnection) As Boolean
         Dim ErrorVal As Boolean = True
         Dim cmd As New SqlCommand(sql, db_con)
@@ -165,7 +161,7 @@ Public Class DB_Util
         GatherData = ErrorVal
 
     End Function
-    '***************************************************************************************
+    '''***************************************************************************************
     Function GatherData(sql As String, ByRef ds As DataSet, ByRef db_con As OdbcConnection) As Boolean
         Dim ErrorVal As Boolean = True
 
@@ -218,7 +214,7 @@ Public Class DB_Util
 
     End Function
 
-    '***************************************************************************************
+    '''***************************************************************************************
 
     Function UpdateData(sql As String) As Integer
         Dim RetVal As Integer = 0
@@ -235,7 +231,7 @@ Public Class DB_Util
     End Function
 
 
-    '***************************************************************************************
+    '''***************************************************************************************
 
     Function UpdateData(sql As String, db_con As SqlConnection) As Integer
         Dim retVal As Integer = -1
@@ -253,7 +249,7 @@ Public Class DB_Util
         UpdateData = retVal
 
     End Function
-    '***************************************************************************************
+    '''***************************************************************************************
 
     Function UpdateData(sql As String, db_con As OdbcConnection) As Integer
         Dim retVal As Integer = -1
@@ -270,7 +266,7 @@ Public Class DB_Util
         UpdateData = retVal
 
     End Function
-    '***************************************************************************************
+    '''***************************************************************************************
     Function ProcessSqlByRow(sql As String) As Boolean
         Dim RetVal As Boolean = True
 
@@ -284,7 +280,7 @@ Public Class DB_Util
         Return RetVal
     End Function
 
-    '***************************************************************************************
+    '''***************************************************************************************
     Function ProcessSqlByRow(sql As String, ByRef db_con As SqlConnection) As Boolean
         Dim RetVal As Boolean = True
         Dim RecordTable As New DataTable()
@@ -305,7 +301,7 @@ Public Class DB_Util
 
     End Function
 
-    '***************************************************************************************
+    '''***************************************************************************************
     Function ProcessSqlByRow(sql As String, ByRef db_con As OdbcConnection) As Boolean
         Dim RetVal As Boolean = True
 
@@ -327,7 +323,7 @@ Public Class DB_Util
     Sub testsub(thistab As Data.DataTable)
 
     End Sub
-    '***************************************************************************************
+    '''***************************************************************************************
 
 
     Public Sub CloseDatabase()
@@ -342,9 +338,10 @@ Public Class DB_Util
     '***************************************************************************************
 
 #Region "IDisposable Support"
-    Private disposedValue As Boolean ' To detect redundant calls
+    ''' To detect redundant calls
+    Private disposedValue As Boolean
 
-    ' IDisposable
+    ''' IDisposable
     Protected Overridable Sub Dispose(disposing As Boolean)
         If Not Me.disposedValue Then
             If disposing Then
@@ -364,13 +361,13 @@ Public Class DB_Util
     '    MyBase.Finalize()
     'End Sub
 
-    ' This code added by Visual Basic to correctly implement the disposable pattern.
+    ''' This code added by Visual Basic to correctly implement the disposable pattern.
     Public Sub Dispose() Implements IDisposable.Dispose
         ' Do not change this code.  Put cleanup code in Dispose(disposing As Boolean) above.
         Dispose(True)
         GC.SuppressFinalize(Me)
     End Sub
-    '***************************************************************************************
+    '''***************************************************************************************
 
     Function RunStoredProc(sql As String) As Integer
         Dim RetVal As Integer = 0
@@ -387,7 +384,7 @@ Public Class DB_Util
     End Function
 
 
-    '***************************************************************************************
+    '''***************************************************************************************
 
     Function RunStoredProc(sql As String, db_con As SqlConnection) As Integer
         Dim retVal As Integer = -1
@@ -407,7 +404,7 @@ Public Class DB_Util
         RunStoredProc = retVal
 
     End Function
-    '***************************************************************************************
+    '''***************************************************************************************
 
     Function RunStoredProc(sql As String, db_con As OdbcConnection) As Integer
         Dim retVal As Integer = -1
@@ -426,9 +423,8 @@ Public Class DB_Util
         RunStoredProc = retVal
 
     End Function
-    '***************************************************************************************
-
-    'needs adaptation for odbc
+    '''***************************************************************************************
+    '''needs adaptation for odbc
 
     Sub PrepParamCmd(sqlstr As String)
         paramCmd = New SqlCommand(sqlstr, sql_con)

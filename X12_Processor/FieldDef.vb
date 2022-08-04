@@ -2,14 +2,14 @@
     Public FName As String
     Public FType As String
     Public FLength As Integer
-    ' validation list for lookup values / processing
+    ''' validation list for lookup values / processing
     Public FCodeTableName As String
     Public Mandatory As Boolean
     Public SubFieldCount As Integer
     Public NumberFormat As String
     Public Alignment As String
     Public Padding As String
-    'list of A->B mappings to substitute in data
+    '''list of A->B mappings to substitute in data
     Public SubstituteGroupName As String
     Public StartPosition As Integer
 

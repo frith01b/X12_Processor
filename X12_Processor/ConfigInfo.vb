@@ -16,10 +16,10 @@ End Enum
 
 <Serializable()>
 Public Class ConfigInfo
-    '****************************************************************
-    ' all new public fields need corresponding private ones for serialization to work
-    ' (search for   "Non-Public properties" at bottom of code)
-    '****************************************************************
+    '''****************************************************************
+    ''' all new public fields need corresponding private ones for serialization to work
+    ''' (search for   "Non-Public properties" at bottom of code)
+    '''****************************************************************
     Public Shared Configfile As String
     Public Shared ConfigDIR As String
     Public Shared FileLoadDir As String
@@ -34,13 +34,13 @@ Public Class ConfigInfo
     Public Shared RecordSetDir As String
     Public Shared SegmentDefDir As String
 
-    '**********************************************************
+    '''**********************************************************
     Public Shared Function FromFile(MyConfigFile As String) As ConfigInfo
         Dim retry As Integer = 0
 
 LookTwice:
         If File.Exists(MyConfigFile) Then
-            Dim objStreamReader As New StreamReader(MyConfigFile) '
+            Dim objStreamReader As New StreamReader(MyConfigFile)
             Dim serializer As New Serialization.XmlSerializer(GetType(ConfigInfo))
             Dim LocalConfig As ConfigInfo
 
@@ -82,7 +82,7 @@ LookTwice:
     End Function
     '**********************************************************
     '**********************************************************
-    'Default values only for new installations
+    '''Default values only for new installations
     Public Sub New()
         Configfile = "C:\temp\EDI\X12_Processor.conf"
         ConfigDIR = "C:\temp\EDI\"
@@ -97,7 +97,7 @@ LookTwice:
         RecordSetDir = "C:\temp\EDI\RECDEF"
 
     End Sub
-    '**********************************************************
+    '''**********************************************************
     Public Sub SaveConfigFile(MyconfigFile As String)
 
         Utility.VerifyDirList({Path.GetFullPath(MyconfigFile)})
@@ -107,14 +107,14 @@ LookTwice:
         file.Close()
 
     End Sub
-    '**********************************************************
+    '''**********************************************************
     Public Shared Sub MakeConfDirs()
         Utility.VerifyDirList({FileLoadDir, OutputDir, PartnerDir, OutputDir, SegmentDefDir,
                               RecordSetDir})
     End Sub
 
-    '*********************************
-    'Non-Public properties / copies of public members to make serialization work
+    '''*********************************
+    '''Non-Public properties / copies of public members to make serialization work
     Property Config_file As String
         Get
             Return Configfile
