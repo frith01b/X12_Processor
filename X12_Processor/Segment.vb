@@ -20,6 +20,8 @@ Public Interface SegTranslate
     Property FieldDefFile As String
     ' Fields contain actual input data
     Property Fields As Dictionary(Of String, String)
+    Property LoopData As List(Of SegTranslate)
+    Property Parent As SegTranslate
     'RecIndex used for actual data records to maintain order of input/output
     Property RecIndex As Long
     Sub InitializeTranDef()
@@ -27,6 +29,7 @@ Public Interface SegTranslate
     Sub ReMap()
     Sub LoadFieldDef()
     Sub SaveTranDef()
+    Sub AddLoopItem(MySegment As SegTranslate)
 
     ' Filter removes extraneous notes/data
     Function Filter() As String()
@@ -52,6 +55,8 @@ Public Class Segment
     Dim _FieldCount As Integer
     Dim _FieldDefFile As String
     Dim _RecIndex As Long
+    Dim _LoopData As List(Of SegTranslate)
+    Dim _Parent As SegTranslate
 
     Private _Fields As Dictionary(Of String, String)
     Public Sub New(RecType As String)
@@ -136,6 +141,28 @@ Public Class Segment
         End Set
     End Property
 
+    Public Property LoopData As List(Of SegTranslate) Implements SegTranslate.LoopData
+        Get
+            If _LoopData Is Nothing Then
+                _LoopData = New List(Of SegTranslate)
+            End If
+            Return _LoopData
+
+        End Get
+        Set(value As List(Of SegTranslate))
+            _LoopData = value
+        End Set
+    End Property
+
+    Public Property Parent As SegTranslate Implements SegTranslate.parent
+        Get
+            Return _Parent
+        End Get
+        Set(value As SegTranslate)
+            _Parent = value
+        End Set
+    End Property
+
     Public Sub Remove_Field_Key(Value As String)
         _Fields.Remove(Value)
     End Sub
@@ -152,7 +179,6 @@ Public Class Segment
             FieldDefs.FieldDefList.Add(NewField)
         Else
             Interchange.AddError("ERR002:Unable to create Field ", Interchange.Error_Type_List.StdError)
-
         End If
     End Sub
     Sub RemoveFieldDef(FieldName As String)
@@ -275,29 +301,28 @@ Public Class Segment
 
         FieldList = _Fields.Keys.ToList()
         FieldList.Sort()
-
-
-
         For x = 0 To FieldList.Count - 1
             'need to substring & PAD & Strip quotes
             If FieldDefs.FieldDefList(x).FLength > 1 Then
 
                 Select Case FieldDefs.FieldDefList(x).Alignment
                     Case "LPAD"
-
                         Result = Result.Substring(1, FieldDefs.FieldDefList(x).StartPosition - 1) & Get_Field_LPAD(_Fields(FieldList(x)), FieldDefs.FieldDefList(x).FLength, FieldDefs.FieldDefList(x).Padding) & Result.Substring(FieldDefs.FieldDefList(x).StartPosition + FieldDefs.FieldDefList(x).FLength + 1)
+
                     Case "RPAD"
                         Result = Result.Substring(1, FieldDefs.FieldDefList(x).StartPosition - 1) & Get_Field_RPAD(_Fields(FieldList(x)), FieldDefs.FieldDefList(x).FLength, FieldDefs.FieldDefList(x).Padding) & Result.Substring(FieldDefs.FieldDefList(x).StartPosition + FieldDefs.FieldDefList(x).FLength + 1)
+
                     Case "ZPAD"
                         Result = Result.Substring(1, FieldDefs.FieldDefList(x).StartPosition - 1) & Get_Field_ZPAD(_Fields(FieldList(x)), FieldDefs.FieldDefList(x).FLength, FieldDefs.FieldDefList(x).Padding) & Result.Substring(FieldDefs.FieldDefList(x).StartPosition + FieldDefs.FieldDefList(x).FLength + 1)
                 End Select
             Else
                 Select Case FieldDefs.FieldDefList(x).Alignment
                     Case "LPAD"
-
                         Result = Get_Field_LPAD(_Fields(FieldList(x)), FieldDefs.FieldDefList(x).FLength, FieldDefs.FieldDefList(x).Padding) & Result.Substring(FieldDefs.FieldDefList(x).StartPosition + FieldDefs.FieldDefList(x).FLength + 1)
+
                     Case "RPAD"
                         Result = Get_Field_RPAD(_Fields(FieldList(x)), FieldDefs.FieldDefList(x).FLength, FieldDefs.FieldDefList(x).Padding) & Result.Substring(FieldDefs.FieldDefList(x).StartPosition + FieldDefs.FieldDefList(x).FLength + 1)
+
                     Case "ZPAD"
                         Result = Get_Field_ZPAD(_Fields(FieldList(x)), FieldDefs.FieldDefList(x).FLength, FieldDefs.FieldDefList(x).Padding) & Result.Substring(FieldDefs.FieldDefList(x).StartPosition + FieldDefs.FieldDefList(x).FLength + 1)
                 End Select
@@ -306,6 +331,11 @@ Public Class Segment
 
         Return Result
     End Function
+    ''' <summary>
+    ''' 
+    ''' </summary>
+    ''' <param name="InRec"></param>
+    ''' <returns></returns>
     Public Function Gen_X12_Record(InRec As Segment) As String Implements SegTranslate.Gen_X12_Record
         Dim FieldCount As Integer
         Dim FieldList As List(Of String)
@@ -363,6 +393,17 @@ Public Class Segment
         Dim file As New System.IO.StreamWriter(path:=_FieldDefFile)
         writer.Serialize(file, Me)
         file.Close()
+    End Sub
+
+    Public Sub AddLoopItem(MySegment As SegTranslate) Implements SegTranslate.AddLoopItem
+        If Not MySegment Is Nothing Then
+            If _LoopData Is Nothing Then
+                _LoopData = New List(Of SegTranslate)
+            End If
+            _LoopData.Add(MySegment)
+        Else
+            Interchange.AddError("ERR002:Null Segment add attempt ", Interchange.Error_Type_List.StdError)
+        End If
     End Sub
 
 

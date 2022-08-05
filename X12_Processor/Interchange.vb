@@ -13,7 +13,7 @@ Imports X12_Processor
 
 Public Class Interchange
     ' debugflag: print extra messages during execution
-    Public Shared debugflag As Boolean = True
+    Public Shared debugflag As Boolean = False
     Public Shared hasErrors As Boolean = False
     Public Shared ErrorMsg() As String
     Public Shared ErrorCount As Integer
@@ -154,6 +154,15 @@ Public Class Interchange
         If ErrorCount <= 10000 Then
             ReDim Preserve ErrorMsg(ErrorCount)
             ErrorMsg(ErrorCount - 1) = NewErrorMsg
+            If level > Error_Type_List.Normal Then
+                ' include stack trace in message
+                Dim st As StackTrace = New StackTrace()
+                Dim sf As StackFrame
+                For Each sf In st.GetFrames
+                    ReDim Preserve ErrorMsg(ErrorCount)
+                    ErrorMsg(ErrorCount - 1) = sf.GetMethod().ToString
+                Next sf
+            End If
         End If
         If level > ErrorType Then
             ErrorType = level

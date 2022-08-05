@@ -44,7 +44,11 @@ Public Class RecDefItem
 
     Property mytype As String
         Get
-            Return _mytype
+            If Not _mytype Is Nothing Then
+                Return _mytype
+            Else
+                Return ""
+            End If
         End Get
         Set
             _mytype = Value
@@ -53,7 +57,12 @@ Public Class RecDefItem
 
     Property myrepeat As String
         Get
-            Return _myrepeat
+            If Not _myrepeat Is Nothing Then
+                Return _myrepeat
+            Else
+                Return ""
+            End If
+
         End Get
         Set
             _myrepeat = Value
@@ -61,7 +70,12 @@ Public Class RecDefItem
     End Property
     Property LastRecord As String
         Get
-            Return _LastRecord
+            If Not _LastRecord Is Nothing Then
+                Return _LastRecord
+            Else
+                Return ""
+            End If
+
         End Get
         Set
             _LastRecord = Value
@@ -70,7 +84,11 @@ Public Class RecDefItem
 
     Property Mandatory As String
         Get
-            Return _Mandatory
+            If Not _Mandatory Is Nothing Then
+                Return _Mandatory
+            Else
+                Return ""
+            End If
         End Get
         Set
             _Mandatory = Value
@@ -79,7 +97,12 @@ Public Class RecDefItem
 
     Property EndTrigger As String
         Get
-            Return _EndTrigger
+            If Not _EndTrigger Is Nothing Then
+                Return _EndTrigger
+            Else
+                Return ""
+            End If
+
         End Get
         Set
             _EndTrigger = Value
@@ -88,7 +111,11 @@ Public Class RecDefItem
 
     Property myloop As List(Of RecDefItem)
         Get
-            Return _myloop
+            If _myloop Is Nothing Then
+                Return New List(Of RecDefItem)
+            Else
+                Return _myloop
+            End If
         End Get
         Set
             _myloop = Value

@@ -26,39 +26,39 @@ Interface RecordSetMethods_Intf
 
 End Interface
 
+
 Public Class RecordSet
     Inherits DynamicObject
     Implements RecordSetMethods_Intf
-    ' _LastSeq: keeps track of prior record position in definition.
-    Dim _PrevSegSeq As Long = 0
-    Dim RecSetDefFile As String
-    Public Shared DefRec_Count As Long
+
+    Public Const MAX_Seq_Const = 9999999
+
     Dim Rec_Count As Long = 0
-    ' ReCData = Decoded actual record data.
-    Dim Rec_Data As List(Of Rec_Data_Type) = New List(Of Rec_Data_Type)
+    ' RecData = Decoded actual record data with correct segment types.
+    Dim Rec_Data As List(Of SegTranslate) = New List(Of SegTranslate)
     ' Rec_DataPtr :  Point to current array for new records in correct definition loop for Rec_Data
-    Dim Rec_DataPtr As List(Of Rec_Data_Type)
+    Dim Current_Rec_ListPtr As List(Of SegTranslate)
+    ' _PrevSeq: keeps track of prior record position in definition.
+    Dim Current_Rec_data As SegTranslate
+    Dim _PrevSegSeq As Long = 0
 
     '  Dim myxmlDyn As XmlToDynamic.Core.Extensions
 
-    ' RecDefObj = placeholder for incoming dynamic definition prior to de-coding
-    Dim RecDefObj As ExpandoObject
     'RecordDefPtr = point to current definition area.
     Dim RecordDefPtr As List(Of RecDefItem)
 
+    ' ***********************************
+    '          Record Definition variables
+
+    Dim RecSetDefFile As String
+    Public Shared DefRec_Count As Long
+    ' RecDefObj = placeholder for incoming dynamic definition prior to de-coding
+    Dim RecDefObj As ExpandoObject
     Shared TypedRecDef() As RecDefItem
     Public RecDefList As List(Of RecDefItem)
 
-    Public Enum Rec_Def_Relation
-        NotFound = 1
-        Sibling = 2
-        Child = 3
-        Parent = 4
-    End Enum
-
     Public Sub New()
-        Rec_Data.Add(New Rec_Data_Type)
-        Rec_DataPtr = Rec_Data
+        Current_Rec_ListPtr = Rec_Data
     End Sub
     Public Sub New(MyBlob As ExpandoObject)
 
@@ -109,7 +109,7 @@ Public Class RecordSet
     End Sub
 
     Private Sub InsertRecData(castRec As SegTranslate)
-        FindNextSegment(castRec, Rec_DataPtr)
+        FindNextSegment(castRec, Current_Rec_ListPtr)
         ' if only new records added
 
 
@@ -410,28 +410,43 @@ Public Class RecordSet
         Return o
     End Function
 
-    Function FindNextSegment(MySegment As SegTranslate, ByRef MyObj As List(Of Rec_Data_Type)) As Boolean
+    Function FindNextSegment(MySegment As SegTranslate, ByRef MyParent As List(Of SegTranslate)) As Boolean
         Dim retVal As Boolean = False
+        Dim infoFound As FinderInfo
 
         If (_PrevSegSeq > 0) Then
-            Debug.Print("here")
-            Select Case WhereIsNextSegment(MySegment.RecordName)
-                Case Rec_Def_Relation.Sibling
-                    Rec_DataPtr.Add(MySegment)
-                Case Rec_Def_Relation.Child
-                    Rec_DataPtr.Add(MySegment)
-                Case Rec_Def_Relation.Parent
-                    Rec_DataPtr.Add(MySegment)
+            infoFound = WhereIsNextSegment(MySegment.RecordName)
+            Select Case infoFound.NextRecPosition
+                Case FinderInfo.Rec_Def_Relation.Sibling
+                    Current_Rec_ListPtr.Add(MySegment)
+                    Current_Rec_data = MySegment
+
+                Case FinderInfo.Rec_Def_Relation.Child
+                    Dim myLoop As LoopHolder = New LoopHolder
+                    myLoop.RecIndex = infoFound.Seq
+                    myLoop.RecordName = infoFound.RecordName
+                    myLoop.Parent = Current_Rec_data
+                    myLoop.AddLoopItem(MySegment)
+
+                    Current_Rec_ListPtr.Add(myLoop)
+                    ' update pointers
+                    Current_Rec_ListPtr = myLoop.LoopData
+                    Current_Rec_data = MySegment
+                Case FinderInfo.Rec_Def_Relation.Parent
+                    Current_Rec_ListPtr.Add(MySegment)
                 Case Else
-                    Rec_DataPtr.ADD(MySegment)
+                    Current_Rec_ListPtr.Add(MySegment)
 
             End Select
         Else
             ' first record
             If MySegment.RecordName = RecDefList(0).mytype Then
-                MyObj(0).addSegment(MySegment)
+
+                MyParent.Add(MySegment)
                 _PrevSegSeq = RecDefList(0).Seq
                 RecordDefPtr = RecDefList
+                Current_Rec_ListPtr = MyParent
+                Current_Rec_data = MyParent(0)
                 retVal = True
             Else
                 Interchange.AddError("First Record does not match definition :Found " & MySegment.GetType.ToString & " looking for: " & RecDefList(0).recname, Interchange.Error_Type_List.StdError)
@@ -447,21 +462,64 @@ Public Class RecordSet
     ''' </summary>
     ''' <param name="recordName"></param>
     ''' <returns></returns>
-    Private Function WhereIsNextSegment(recordName As String) As Rec_Def_Relation
-        Dim RetVal As Rec_Def_Relation = Rec_Def_Relation.NotFound
+    Private Function WhereIsNextSegment(recordName As String) As FinderInfo
+        Dim RetVal As FinderInfo = New FinderInfo
+        Dim NextMandatorySeq As Long = MAX_Seq_Const
+        Dim SaveMandRecName As String = ""
+        Dim curseq As Long = 0
+
+        ' check siblings first
         If Not RecordDefPtr Is Nothing Then
-            For Each rec In RecordDefPtr.myloop
-                If recordName = rec.recname Then
-                    RetVal = Rec_Def_Relation.Sibling
-                Else
-                    If rec.Seq > _PrevSegSeq And rec.Mandatory.ToUpper = "Y" Then
-                        Interchange.AddError("Record out of Sequence:Found " & rec.Seq & " " & rec.recname & " looking for: " & recordName, Interchange.Error_Type_List.StdError)
+            For Each rec In RecordDefPtr
+                If rec.Seq >= _PrevSegSeq Then
+                    If recordName = rec.mytype Then
+                        RetVal.NextRecPosition = FinderInfo.Rec_Def_Relation.Sibling
+                        _PrevSegSeq = rec.Seq
+                        curseq = rec.Seq
+                        Exit For
+
+                    Else
+                        If rec.Mandatory.ToUpper = "Y" And rec.Seq > _PrevSegSeq And NextMandatorySeq = MAX_Seq_Const And rec.myloop.Count = 0 Then
+                            NextMandatorySeq = rec.Seq
+                            SaveMandRecName = rec.mytype
+                            Exit For
+                        End If
                     End If
                 End If
             Next
         End If
+        If RetVal.NextRecPosition = FinderInfo.Rec_Def_Relation.NotFound Then
+
+            ' check children 2nd
+            For Each rec In RecordDefPtr
+                For Each myloop In rec.myloop
+                    If myloop.Seq >= _PrevSegSeq Then
+                        If recordName = myloop.mytype Then
+                            RetVal.NextRecPosition = FinderInfo.Rec_Def_Relation.Child
+                            _PrevSegSeq = myloop.Seq
+                            curseq = myloop.Seq
+                            Exit For
+
+                        Else
+                            If myloop.Mandatory.ToUpper = "Y" And rec.myloop.Count = 0 And NextMandatorySeq = MAX_Seq_Const Then
+                                NextMandatorySeq = myloop.Seq
+                                SaveMandRecName = myloop.mytype
+                                Exit For
+                            End If
+                        End If
+                    End If
+                Next
+            Next
+        End If
+        If RetVal.NextRecPosition = FinderInfo.Rec_Def_Relation.NotFound Then
+            ' check parent siblings 3rd.
+        End If
+        If NextMandatorySeq < curseq Then
+            Interchange.AddError("Mandatory Record Not Found: " & NextMandatorySeq & " " & SaveMandRecName & " looking for: " & recordName, Interchange.Error_Type_List.StdError)
+            RetVal.NextRecPosition = FinderInfo.Rec_Def_Relation.Mandatory_Missing
+        End If
+
 
         Return RetVal
-
     End Function
 End Class
