@@ -1,7 +1,7 @@
 # X12_Processor
 VB.NET  X12 or flat file recordset parser to flat file or X12 output with filtering, re-map, and custom processing
 
-PRE_ALPHA,  converting older structure based code into newer .Net version and more object oriented.  Program will be used in production when completed, estimated 30 days or so.
+PRE_ALPHA,  converting older structure based code into newer .Net version and more object oriented.  Program will be used in production when completed.
 
 AUTHOR:  Kevin Little
 
