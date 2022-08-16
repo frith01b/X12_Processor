@@ -12,6 +12,7 @@ Public Enum File_Format_List
     Delimited = 2
     FixedField = 3
     SQL = 4
+    XML = 5
 End Enum
 
 <Serializable()>

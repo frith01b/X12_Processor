@@ -319,7 +319,38 @@ Public Class Interchange
     Public Sub PostProcess()
 
     End Sub
-    Public Sub Export()
+    Public Sub Export(ExportFilename As String)
+        Select Case ConfigInfo.OutputType
+            Case File_Format_List.X12
+                Export_X12(ExportFilename)
+            Case File_Format_List.Delimited
+                Export_Delimited(ExportFilename)
+            Case File_Format_List.FixedField
+                Export_FixedField(ExportFilename)
+            Case File_Format_List.SQL
+                Export_SQL(ExportFilename)
+
+
+
+        End Select
+    End Sub
+
+    Private Sub Export_FixedField(ExpFileName As String)
+
+    End Sub
+
+    Private Sub Export_Delimited(ExpFileName As String)
+
+    End Sub
+
+    Private Sub Export_X12(ExpFileName As String)
+        ' @TODO Need to create map to/from for X12
+        ' @TODO need to read destination partner information on format.
+        ' using same definition for now.
+
+    End Sub
+
+    Private Sub Export_SQL(ExpFileName As String)
 
     End Sub
 

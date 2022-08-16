@@ -45,7 +45,7 @@ Public Class RecordSet
     '  Dim myxmlDyn As XmlToDynamic.Core.Extensions
 
     'RecordDefPtr = point to current definition area.
-    Dim RecordDefPtr As List(Of RecDefItem)
+    Dim Current_RecDefPtr As List(Of RecDefItem)
 
     ' ***********************************
     '          Record Definition variables
@@ -55,7 +55,7 @@ Public Class RecordSet
     ' RecDefObj = placeholder for incoming dynamic definition prior to de-coding
     Dim RecDefObj As ExpandoObject
     Shared TypedRecDef() As RecDefItem
-    Public RecDefList As List(Of RecDefItem)
+    Public RecDefList As List(Of RecDefItem) = New List(Of RecDefItem)
 
     Public Sub New()
         Current_Rec_ListPtr = Rec_Data
@@ -120,36 +120,42 @@ Public Class RecordSet
     End Sub
 
     Public Sub Load_RecordDef() Implements RecordSetMethods_Intf.Load_RecordDef
-        Dim x As Integer = 0
-        If RecDefList Is Nothing Then
+        Dim loopX As Integer = 0
 
-            Dim Myfile As New System.IO.StreamReader(path:=RecSetDefFile)
-            Dim myBlobRecDef As ExpandoObject
-            ' toDynamic is extended method from  XMLtoDynamic library (NUGET)
-            RecDefObj = Extensions.ToDynamic(XDocument.Parse(Myfile.ReadToEnd()))
-            ' @TODO  add rec types to definition
-            For x = 0 To RecDefObj.Count - 1
-                If Not RecDefObj(x).Key Is Nothing Then
-                    Select Case RecDefObj(x).Key.ToUpper
-                        Case "#COMMENT"
+        Dim Myfile As New System.IO.StreamReader(path:=RecSetDefFile)
+        Dim myBlobRecDef As ExpandoObject
+        ' toDynamic is extended method from  XMLtoDynamic library (NUGET)
+        RecDefObj = Extensions.ToDynamic(XDocument.Parse(Myfile.ReadToEnd()))
+        ' @TODO  add rec types to definition
+        For loopX = 0 To RecDefObj.Count - 1
+            If Not RecDefObj(loopX).Key Is Nothing Then
+                Select Case RecDefObj(loopX).Key.ToUpper
+                    Case "#COMMENT"
                             'ignore
                             ' first iteration should always be recdef
-                        Case "RECDEF"
-                            DefRec_Count = DefRec_Count + 1
-                            myBlobRecDef = RecDefObj(x).Value
-                            RecDefList = RecurseRecDef(myBlobRecDef)
-                        Case Else
-                            Interchange.AddError("Unknown record definition field" & RecDefObj(x).Key.ToUpper, Interchange.Error_Type_List.StdError)
-                    End Select
-                End If
-            Next
-            If Interchange.debugflag Then
-
-                Debug.Print(RecDefList.Count & "  " & DefRec_Count)
+                    Case "RECDEF"
+                        DefRec_Count = DefRec_Count + 1
+                        myBlobRecDef = RecDefObj(loopX).Value
+                        RecurseRecDef(myBlobRecDef, RecDefList)
+                    Case Else
+                        Interchange.AddError("Unknown record definition field" & RecDefObj(loopX).Key.ToUpper, Interchange.Error_Type_List.StdError)
+                End Select
             End If
+        Next
+        If Interchange.debugflag Then
 
+            Debug.Print(RecDefList.Count & "  " & DefRec_Count)
         End If
-        RecordDefPtr = RecDefList
+
+        RecDefList.Sort(Function(X As RecDefItem, Y As RecDefItem)
+                            Select Case CInt(X.Seq)
+                                Case Is < CInt(Y.Seq) : Return -1
+                                Case Is > CInt(Y.Seq) : Return 1
+                                Case Else : Return 0
+                            End Select
+                        End Function)
+
+        Current_RecDefPtr = RecDefList
 
     End Sub
 
@@ -181,13 +187,21 @@ Public Class RecordSet
         RecSetDefFile = NewRecFile
     End Sub
 
-    Public Function RecurseRecDef(myDefBlob As ExpandoObject) As List(Of RecDefItem)
+    Public Sub RecurseRecDef(myDefBlob As ExpandoObject, ByRef NewRecDefList As List(Of RecDefItem))
+
+
         Dim myrecdefitem As RecDefItem = New RecDefItem
-        Dim NewRecDefList As List(Of RecDefItem) = New List(Of RecDefItem)
+        Dim SubItemList As List(Of RecDefItem)
+
+
+        '  Dim NewRecDefList As List(Of RecDefItem) = New List(Of RecDefItem)
         Dim myloopList As List(Of Object)
         Dim rec_list_found As Boolean = False
         Dim loop_found As Boolean = False
         Dim loopx As Integer
+
+        '     NewRecDefList.Add(New RecDefItem)
+        '    myrecdefitem = NewRecDefList(NewRecDefList.Count - 1)
 
         For loopx = 0 To myDefBlob.Count - 1
             ' find all keys before executing any action
@@ -210,57 +224,54 @@ Public Class RecordSet
                     Case "@MANDATORY"
                         myrecdefitem.Mandatory = myDefBlob(loopx).Value
                     Case "LOOP"
-                        If TypeOf myDefBlob(loopx).Value Is ExpandoObject Then
-                            DefRec_Count = DefRec_Count + 1
-
-
-                            NewRecDefList.Add(MakeLoop(myDefBlob(loopx).Value))
-                            If Interchange.debugflag Then
-
-                                Debug.Print("Loop1 " & NewRecDefList.Count & "-" & NewRecDefList(NewRecDefList.Count - 1).recname & " T" & NewRecDefList(NewRecDefList.Count - 1).mytype & " E" & NewRecDefList(NewRecDefList.Count - 1).EndTrigger & " #" & NewRecDefList(NewRecDefList.Count - 1).Seq & " L" & NewRecDefList(NewRecDefList.Count - 1).LastRecord & " M" & NewRecDefList(NewRecDefList.Count - 1).Mandatory)
-                            End If
-
-                        Else
-                            ' multiple loops together
-                            myloopList = myDefBlob(loopx).Value
-                            For Each myloop In myloopList
-                                DefRec_Count = DefRec_Count + 1
-
-
-                                NewRecDefList.Add(MakeLoop(myloop))
-                                If Interchange.debugflag Then
-
-                                    Debug.Print("LoopM " & NewRecDefList.Count & "-" & NewRecDefList(NewRecDefList.Count - 1).recname & " T" & NewRecDefList(NewRecDefList.Count - 1).mytype & " E" & NewRecDefList(NewRecDefList.Count - 1).EndTrigger & " #" & NewRecDefList(NewRecDefList.Count - 1).Seq & " L" & NewRecDefList(NewRecDefList.Count - 1).LastRecord & " M" & NewRecDefList(NewRecDefList.Count - 1).Mandatory)
-                                End If
-
-                            Next myloop
-                        End If
-
+                        ' ignore loop on first pass
                     Case "REC_LIST"
                         If TypeOf myDefBlob(loopx).Value Is ExpandoObject Then
-                            DefRec_Count = DefRec_Count + 1
-                            NewRecDefList.Add(MakeRecDef(myDefBlob(loopx).Value))
-                            If Interchange.debugflag Then
-
-                                Debug.Print("Rec1 " & NewRecDefList.Count & "-" & NewRecDefList(NewRecDefList.Count - 1).recname & " T" & NewRecDefList(NewRecDefList.Count - 1).mytype & " E" & NewRecDefList(NewRecDefList.Count - 1).EndTrigger & " #" & NewRecDefList(NewRecDefList.Count - 1).Seq & " L" & NewRecDefList(NewRecDefList.Count - 1).LastRecord & " M" & NewRecDefList(NewRecDefList.Count - 1).Mandatory)
-                            End If
-
+                            ' make it into array
+                            myloopList = (myDefBlob(loopx).Value)
                         Else
                             ' multiple records together
                             myloopList = myDefBlob(loopx).Value
-                            For Each myloop In myloopList
-                                DefRec_Count = DefRec_Count + 1
-                                NewRecDefList.Add(MakeRecDef(myloop))
-                                If Interchange.debugflag Then
-
-                                    Debug.Print("RecM " & NewRecDefList.Count & "-" & NewRecDefList(NewRecDefList.Count - 1).recname & " T" & NewRecDefList(NewRecDefList.Count - 1).mytype & " E" & NewRecDefList(NewRecDefList.Count - 1).EndTrigger & " #" & NewRecDefList(NewRecDefList.Count - 1).Seq & " L" & NewRecDefList(NewRecDefList.Count - 1).LastRecord & " M" & NewRecDefList(NewRecDefList.Count - 1).Mandatory)
-                                End If
-
-                            Next myloop
                         End If
 
+                        For Each myloop In myloopList
+                            DefRec_Count = DefRec_Count + 1
+                            MakeRecDef(myloop, myrecdefitem, NewRecDefList)
+                            NewRecDefList.Add(myrecdefitem)
+                            myrecdefitem = New RecDefItem
+                            If Interchange.debugflag Then
+                                Debug.Print("RecM " & NewRecDefList.Count & "-" & NewRecDefList(NewRecDefList.Count - 1).recname & " T" & NewRecDefList(NewRecDefList.Count - 1).mytype & " E" & NewRecDefList(NewRecDefList.Count - 1).EndTrigger & " #" & NewRecDefList(NewRecDefList.Count - 1).Seq & " L" & NewRecDefList(NewRecDefList.Count - 1).LastRecord & " M" & NewRecDefList(NewRecDefList.Count - 1).Mandatory)
+                            End If
+                        Next myloop
                     Case Else
                         Interchange.AddError("Unknown record definition field" & myDefBlob(loopx).Key.ToUpper, Interchange.Error_Type_List.StdError)
+                End Select
+            End If
+        Next
+        For loopx = 0 To myDefBlob.Count - 1
+            ' find all keys before executing any action
+            If Not myDefBlob(loopx).Key Is Nothing Then
+                Select Case myDefBlob(loopx).Key.ToUpper
+                    Case "LOOP"
+                        ' only process loop items 2nd time through
+                        If TypeOf myDefBlob(loopx).Value Is ExpandoObject Then
+                            'change it to List of objects instead
+                            myloopList = DirectCast(New List(Of Object)({myDefBlob(loopx).Value}), List(Of Object))
+                        Else
+                            ' multiple loops in list together
+                            myloopList = myDefBlob(loopx).Value
+                        End If
+
+                        For Each myloop In myloopList
+                            DefRec_Count = DefRec_Count + 1
+                            SubItemList = MakeLoop(myloop, NewRecDefList)
+                            For Each subRec In SubItemList
+                                NewRecDefList.Add(subRec)
+                            Next subRec
+                            If Interchange.debugflag Then
+                                Debug.Print("LoopM " & NewRecDefList.Count & "-" & NewRecDefList(NewRecDefList.Count - 1).recname & " T" & NewRecDefList(NewRecDefList.Count - 1).mytype & " E" & NewRecDefList(NewRecDefList.Count - 1).EndTrigger & " #" & NewRecDefList(NewRecDefList.Count - 1).Seq & " L" & NewRecDefList(NewRecDefList.Count - 1).LastRecord & " M" & NewRecDefList(NewRecDefList.Count - 1).Mandatory)
+                            End If
+                        Next myloop
                 End Select
             End If
         Next
@@ -281,118 +292,152 @@ Public Class RecordSet
                                    Case Else : Return 0
                                End Select
                            End Function)
-        Return NewRecDefList
-    End Function
 
-    Function MakeRecDef(RecAttributes As ExpandoObject) As RecDefItem
-        Dim myRecDefItem As RecDefItem = New RecDefItem
+    End Sub
+
+    Sub MakeRecDef(RecAttributes As ExpandoObject, ByRef LocalRecDefItem As RecDefItem, MyParent As List(Of RecDefItem))
+        '   Dim LocalRecDefItem As RecDefItem = New RecDefItem
         Dim y As Integer
         For y = 0 To RecAttributes.Count - 1
-
             Select Case RecAttributes(y).Key.ToUpper
                 Case "#COMMENT"
                     'ignore comments
                 Case "@SEQNUM"
-                    myRecDefItem.Seq = RecAttributes(y).Value
+                    LocalRecDefItem.Seq = RecAttributes(y).Value
                 Case "@NAME"
-                    myRecDefItem.recname = RecAttributes(y).Value
+                    LocalRecDefItem.recname = RecAttributes(y).Value
                 Case "@TYPE"
-                    myRecDefItem.mytype = RecAttributes(y).Value
+                    LocalRecDefItem.mytype = RecAttributes(y).Value
                 Case "@REPEAT"
-                    myRecDefItem.myrepeat = RecAttributes(y).Value
+                    LocalRecDefItem.myrepeat = RecAttributes(y).Value
                 Case "@ENDTRIGGER"
-                    myRecDefItem.EndTrigger = RecAttributes(y).Value
+                    LocalRecDefItem.EndTrigger = RecAttributes(y).Value
                 Case "@MANDATORY"
-                    myRecDefItem.Mandatory = RecAttributes(y).Value
+                    LocalRecDefItem.Mandatory = RecAttributes(y).Value
+                Case "@LOOP", "LOOP", "REC_LIST", "@REC_LIST"
+                    ' Ignore, will be built by MakeLoop
                 Case Else
                     Interchange.AddError("Unknown record definition field" & RecAttributes(y).Key.ToUpper, Interchange.Error_Type_List.StdError)
             End Select
-
         Next y
-        Return myRecDefItem
-    End Function
-    Function MakeLoop(ByRef myDefBlob As ExpandoObject) As RecDefItem
-        Dim NewDefList As List(Of RecDefItem) = New List(Of RecDefItem)
+        LocalRecDefItem.ParentList = MyParent
+    End Sub
+    Function MakeLoop(ByRef myDefBlob As ExpandoObject, LoopParent As List(Of RecDefItem)) As List(Of RecDefItem)
+        Dim retVal As List(Of RecDefItem) = New List(Of RecDefItem)
+        Dim subRecDefList As List(Of RecDefItem)
         Dim myRecDefItem As RecDefItem = New RecDefItem
+        Dim subRecDefItem As RecDefItem
         Dim myloop As ExpandoObject
         Dim myloopList As List(Of Object)
-        Dim delayedAdd As Boolean = False
 
-        For x = 0 To myDefBlob.Count - 1
-            Select Case myDefBlob(x).Key.ToUpper
+        For loopX = 0 To myDefBlob.Count - 1
+            Select Case myDefBlob(loopX).Key.ToUpper
                 'attributes start with @
                 Case "#COMMENT"
                     'ignore
                 Case "@NAME"
-                    myRecDefItem.recname = myDefBlob(x).Value
+                    myRecDefItem.recname = myDefBlob(loopX).Value
                 Case "@ENDTRIGGER"
-                    myRecDefItem.EndTrigger = myDefBlob(x).Value
+                    myRecDefItem.EndTrigger = myDefBlob(loopX).Value
                 Case "@LASTRECORD"
-                    myRecDefItem.LastRecord = myDefBlob(x).Value
+                    myRecDefItem.LastRecord = myDefBlob(loopX).Value
                 Case "@MANDATORY"
-                    myRecDefItem.Mandatory = myDefBlob(x).Value
+                    myRecDefItem.Mandatory = myDefBlob(loopX).Value
                 Case "@SEQNUM"
-                    myRecDefItem.Seq = myDefBlob(x).Value
+                    myRecDefItem.Seq = myDefBlob(loopX).Value
                 Case "LOOP"
-                    If TypeOf myDefBlob(x).Value Is ExpandoObject Then
-                        DefRec_Count = DefRec_Count + 1
-                        'myRecDefItem = New RecDefItem
-                        NewDefList.Add(MakeLoop(myDefBlob(x).Value))
-
-                        If Interchange.debugflag Then
-                            Debug.Print("Loop1 " & NewDefList.Count & "-" & NewDefList(NewDefList.Count - 1).recname & " T" & NewDefList(NewDefList.Count - 1).mytype & " E" & NewDefList(NewDefList.Count - 1).EndTrigger & " #" & NewDefList(NewDefList.Count - 1).Seq & " L" & NewDefList(NewDefList.Count - 1).LastRecord & " M" & NewDefList(NewDefList.Count - 1).Mandatory)
-                        End If
-
-                    Else
-                        ' multiple loops together
-                        myloopList = myDefBlob(x).Value
-                        For Each myloop In myloopList
-                            DefRec_Count = DefRec_Count + 1
-                            NewDefList.Add(MakeLoop(myloop))
-                            If Interchange.debugflag Then
-
-                                Debug.Print("LoopM " & NewDefList.Count & "-" & NewDefList(NewDefList.Count - 1).recname & " T" & NewDefList(NewDefList.Count - 1).mytype & " E" & NewDefList(NewDefList.Count - 1).EndTrigger & " #" & NewDefList(NewDefList.Count - 1).Seq & " L" & NewDefList(NewDefList.Count - 1).LastRecord & " M" & NewDefList(NewDefList.Count - 1).Mandatory)
-                            End If
-
-                        Next myloop
-
-                    End If
+                    ' ignore first time through
                 Case "REC_LIST"
-                    If TypeOf myDefBlob(x).Value Is ExpandoObject Then
-                        DefRec_Count = DefRec_Count + 1
-                        NewDefList.Add(MakeRecDef(myDefBlob(x).Value))
-                        If Interchange.debugflag Then
-
-                            Debug.Print("Rec " & NewDefList.Count & "-" & NewDefList(NewDefList.Count - 1).recname & " T" & NewDefList(NewDefList.Count - 1).mytype & " E" & NewDefList(NewDefList.Count - 1).EndTrigger & " #" & NewDefList(NewDefList.Count - 1).Seq & " L" & NewDefList(NewDefList.Count - 1).LastRecord & " M" & NewDefList(NewDefList.Count - 1).Mandatory)
-
-                        End If
-
+                    If myRecDefItem.myloop Is Nothing Then
+                        myRecDefItem.myloop = New List(Of RecDefItem)
+                    End If
+                    If TypeOf myDefBlob(loopX).Value Is ExpandoObject Then
+                        myloopList = DirectCast(New List(Of Object)({myDefBlob(loopX).Value}), List(Of Object))
                     Else
                         ' multiple loops together
-                        myloopList = myDefBlob(x).Value
-                        For Each myloop In myloopList
-                            DefRec_Count = DefRec_Count + 1
-                            NewDefList.Add(MakeRecDef(myloop))
-                            If Interchange.debugflag Then
-
-                                Debug.Print("RecM " & NewDefList.Count & "-" & NewDefList(NewDefList.Count - 1).recname & " T" & NewDefList(NewDefList.Count - 1).mytype & " E" & NewDefList(NewDefList.Count - 1).EndTrigger & " #" & NewDefList(NewDefList.Count - 1).Seq & " L" & NewDefList(NewDefList.Count - 1).LastRecord & " M" & NewDefList(NewDefList.Count - 1).Mandatory)
-                            End If
-
-                        Next myloop
+                        myloopList = myDefBlob(loopX).Value
                     End If
+                    'DefRec_Count = DefRec_Count + 1
+                    'subRecDefItem = New RecDefItem
+                    'MakeRecDef(myDefBlob(x).Value, subRecDefItem, LoopParent)
+                    'myRecDefItem.myloop.Add(subRecDefItem)
+                    'If Interchange.debugflag Then
+                    '    Debug.Print("Rec " & myRecDefItem.myloop.Count & "-" & myRecDefItem.myloop(myRecDefItem.myloop.Count - 1).recname & " T" & LoopParent(LoopParent.Count - 1).mytype & " E" & LoopParent(LoopParent.Count - 1).EndTrigger & " #" & LoopParent(LoopParent.Count - 1).Seq & " L" & LoopParent(LoopParent.Count - 1).LastRecord & " M" & LoopParent(LoopParent.Count - 1).Mandatory)
+                    'End If
+
+                    For Each myloop In myloopList
+                        DefRec_Count = DefRec_Count + 1
+                        subRecDefItem = New RecDefItem
+                        MakeRecDef(myloop, subRecDefItem, LoopParent)
+                        myRecDefItem.myloop.Add(subRecDefItem)
+                        If Interchange.debugflag Then
+                            Debug.Print("Rec " & myRecDefItem.myloop.Count & "-" & myRecDefItem.myloop(myRecDefItem.myloop.Count - 1).recname & " T" & LoopParent(LoopParent.Count - 1).mytype & " E" & LoopParent(LoopParent.Count - 1).EndTrigger & " #" & LoopParent(LoopParent.Count - 1).Seq & " L" & LoopParent(LoopParent.Count - 1).LastRecord & " M" & LoopParent(LoopParent.Count - 1).Mandatory)
+                        End If
+                    Next myloop
+
+                    myRecDefItem.myloop.Sort(Function(sortX As RecDefItem, sortY As RecDefItem)
+                                                 Select Case CInt(sortX.Seq)
+                                                     Case Is < CInt(sortY.Seq) : Return -1
+                                                     Case Is > CInt(sortY.Seq) : Return 1
+                                                     Case Else : Return 0
+                                                 End Select
+                                             End Function)
                 Case Else
-                    Interchange.AddError("Unknown record definition field" & myDefBlob(x).Key.ToUpper, Interchange.Error_Type_List.StdError)
+                    Interchange.AddError("Unknown record definition field" & myDefBlob(loopX).Key.ToUpper, Interchange.Error_Type_List.StdError)
             End Select
-        Next x
-        ' Add Loop definition once all attributes set.
-        If delayedAdd = True Then
-            NewDefList.Add(myRecDefItem)
+        Next loopX
+        For loopx = 0 To myDefBlob.Count - 1
+            Select Case myDefBlob(loopx).Key.ToUpper
+                Case "LOOP"
+                    If TypeOf myDefBlob(loopx).Value Is ExpandoObject Then
+                        myloopList = DirectCast(New List(Of Object)({myDefBlob(loopx).Value}), List(Of Object))
+                    Else
+                        ' multiple loops together
+                        myloopList = myDefBlob(loopx).Value
+                    End If
+
+                    'DefRec_Count = DefRec_Count + 1
+                    '    'myRecDefItem = New RecDefItem
+                    '    subRecDefList = MakeLoop(myDefBlob(loopx).Value, myRecDefItem.myloop)
+                    '    For Each subrec In subRecDefList
+                    '        myRecDefItem.myloop.Add(subrec)
+                    '    Next subrec
+                    '    If Interchange.debugflag Then
+                    '        Debug.Print("Loop1 " & LoopParent.Count & "-" & LoopParent(LoopParent.Count - 1).recname & " T" & LoopParent(LoopParent.Count - 1).mytype & " E" & LoopParent(LoopParent.Count - 1).EndTrigger & " #" & LoopParent(LoopParent.Count - 1).Seq & " L" & LoopParent(LoopParent.Count - 1).LastRecord & " M" & LoopParent(LoopParent.Count - 1).Mandatory)
+                    '    End If
+
+                    For Each myloop In myloopList
+                            DefRec_Count = DefRec_Count + 1
+                            If myRecDefItem.recname = "" Then
+                                MakeRecDef(myloop, myRecDefItem, LoopParent)
+                            End If
+                            subRecDefList = MakeLoop(myloop, myRecDefItem.myloop)
+                            For Each subrec In subRecDefList
+                                myRecDefItem.myloop.Add(subrec)
+                            Next subrec
+                            myRecDefItem.ParentList = LoopParent
+                            retVal.Add(myRecDefItem)
+                            myRecDefItem = New RecDefItem
+                            If Interchange.debugflag Then
+                                Debug.Print("LoopM " & LoopParent.Count & "-" & LoopParent(LoopParent.Count - 1).recname & " T" & LoopParent(LoopParent.Count - 1).mytype & " E" & LoopParent(LoopParent.Count - 1).EndTrigger & " #" & LoopParent(LoopParent.Count - 1).Seq & " L" & LoopParent(LoopParent.Count - 1).LastRecord & " M" & LoopParent(LoopParent.Count - 1).Mandatory)
+                            End If
+                        Next myloop
+
+            End Select
+        Next loopx
+        If myRecDefItem.recname <> "" Then
+            myRecDefItem.ParentList = LoopParent
+            retVal.Add(myRecDefItem)
+        Else
+            Debug.Print("Empty Item")
         End If
 
-
-        myRecDefItem.myloop = NewDefList
-        Return myRecDefItem
+        Return retVal
     End Function
+
+    '' ********************END OF REC DEF PROCESSING  *********************************
+    '' ********************************************************************************
+
 
     Function GetRecList(RecType As String) As List(Of RecDefItem)
         Return RecDefList
@@ -415,7 +460,7 @@ Public Class RecordSet
         Dim infoFound As FinderInfo
 
         If (_PrevSegSeq > 0) Then
-            infoFound = WhereIsNextSegment(MySegment.RecordName)
+            infoFound = WhereIsNextSegment(Current_RecDefPtr, MySegment.RecordName, True)
             Select Case infoFound.NextRecPosition
                 Case FinderInfo.Rec_Def_Relation.Sibling
                     Current_Rec_ListPtr.Add(MySegment)
@@ -426,6 +471,7 @@ Public Class RecordSet
                     myLoop.RecIndex = infoFound.Seq
                     myLoop.RecordName = infoFound.RecordName
                     myLoop.Parent = Current_Rec_data
+                    MySegment.Parent = myLoop
                     myLoop.AddLoopItem(MySegment)
 
                     Current_Rec_ListPtr.Add(myLoop)
@@ -435,7 +481,8 @@ Public Class RecordSet
                 Case FinderInfo.Rec_Def_Relation.Parent
                     Current_Rec_ListPtr.Add(MySegment)
                 Case Else
-                    Current_Rec_ListPtr.Add(MySegment)
+                    Interchange.AddError("Record NotFound : " & MySegment.GetType.ToString & " looking for: " & RecDefList(0).recname, Interchange.Error_Type_List.StdError)
+
 
             End Select
         Else
@@ -444,7 +491,6 @@ Public Class RecordSet
 
                 MyParent.Add(MySegment)
                 _PrevSegSeq = RecDefList(0).Seq
-                RecordDefPtr = RecDefList
                 Current_Rec_ListPtr = MyParent
                 Current_Rec_data = MyParent(0)
                 retVal = True
@@ -462,15 +508,15 @@ Public Class RecordSet
     ''' </summary>
     ''' <param name="recordName"></param>
     ''' <returns></returns>
-    Private Function WhereIsNextSegment(recordName As String) As FinderInfo
+    Private Function WhereIsNextSegment(ByRef LocalDefPtr As List(Of RecDefItem), recordName As String, searchParents As Boolean) As FinderInfo
         Dim RetVal As FinderInfo = New FinderInfo
         Dim NextMandatorySeq As Long = MAX_Seq_Const
         Dim SaveMandRecName As String = ""
         Dim curseq As Long = 0
 
         ' check siblings first
-        If Not RecordDefPtr Is Nothing Then
-            For Each rec In RecordDefPtr
+        If Not LocalDefPtr Is Nothing Then
+            For Each rec In LocalDefPtr
                 If rec.Seq >= _PrevSegSeq Then
                     If recordName = rec.mytype Then
                         RetVal.NextRecPosition = FinderInfo.Rec_Def_Relation.Sibling
@@ -489,30 +535,77 @@ Public Class RecordSet
             Next
         End If
         If RetVal.NextRecPosition = FinderInfo.Rec_Def_Relation.NotFound Then
-
             ' check children 2nd
-            For Each rec In RecordDefPtr
-                For Each myloop In rec.myloop
-                    If myloop.Seq >= _PrevSegSeq Then
-                        If recordName = myloop.mytype Then
+            For Each rec In LocalDefPtr
+                For Each thisloop In rec.myloop
+                    If thisloop.Seq >= _PrevSegSeq Then
+                        If recordName = thisloop.mytype Then
                             RetVal.NextRecPosition = FinderInfo.Rec_Def_Relation.Child
-                            _PrevSegSeq = myloop.Seq
-                            curseq = myloop.Seq
+                            _PrevSegSeq = thisloop.Seq
+                            curseq = thisloop.Seq
+                            LocalDefPtr = rec.myloop
                             Exit For
 
                         Else
-                            If myloop.Mandatory.ToUpper = "Y" And rec.myloop.Count = 0 And NextMandatorySeq = MAX_Seq_Const Then
-                                NextMandatorySeq = myloop.Seq
-                                SaveMandRecName = myloop.mytype
+                            If thisloop.Mandatory.ToUpper = "Y" And rec.myloop.Count = 0 And NextMandatorySeq = MAX_Seq_Const Then
+                                NextMandatorySeq = thisloop.Seq
+                                SaveMandRecName = thisloop.mytype
                                 Exit For
                             End If
                         End If
                     End If
+                    If thisloop.myloop.Count > 0 Then
+                        Dim checkInfo As FinderInfo = New FinderInfo
+                        ' dont search parents on child tree search
+                        checkInfo = WhereIsNextSegment(thisloop.myloop, recordName, False)
+                        Select Case checkInfo.NextRecPosition
+                            Case FinderInfo.Rec_Def_Relation.Sibling
+                                RetVal.NextRecPosition = FinderInfo.Rec_Def_Relation.Child
+                                curseq = _PrevSegSeq
+                                Current_RecDefPtr = thisloop.myloop
+                                Exit For
+                            Case FinderInfo.Rec_Def_Relation.Child
+                                RetVal.NextRecPosition = FinderInfo.Rec_Def_Relation.Child
+                                curseq = _PrevSegSeq
+                                Exit For
+                        End Select
+                    End If
+
                 Next
             Next
         End If
-        If RetVal.NextRecPosition = FinderInfo.Rec_Def_Relation.NotFound Then
-            ' check parent siblings 3rd.
+
+        If searchParents And RetVal.NextRecPosition = FinderInfo.Rec_Def_Relation.NotFound Then
+            ' check parent siblings 4th.
+            Dim checkInfo As FinderInfo = New FinderInfo
+            Dim ParentDefPtr As List(Of RecDefItem)
+            ParentDefPtr = LocalDefPtr
+            If ParentDefPtr.Count > 0 Then
+
+                While Not ParentDefPtr(0).ParentList Is Nothing AndAlso Not ParentDefPtr(0).ParentList(0).myloop Is Nothing And RetVal.NextRecPosition = FinderInfo.Rec_Def_Relation.NotFound
+                    ParentDefPtr = ParentDefPtr(0).ParentList
+
+                    checkInfo = WhereIsNextSegment(ParentDefPtr, recordName, False)
+                    Select Case checkInfo.NextRecPosition
+                        Case FinderInfo.Rec_Def_Relation.Sibling
+                            RetVal.NextRecPosition = FinderInfo.Rec_Def_Relation.Parent
+                            curseq = _PrevSegSeq
+                            LocalDefPtr = ParentDefPtr
+                            Exit While
+                        Case FinderInfo.Rec_Def_Relation.Child
+                            RetVal.NextRecPosition = FinderInfo.Rec_Def_Relation.Parent
+                            curseq = _PrevSegSeq
+                            ' where is correct spot for pointer?
+                            LocalDefPtr = ParentDefPtr
+                            Exit While
+                        Case Else
+
+                    End Select
+                    If ParentDefPtr.Count = 0 Then
+                        Exit While
+                    End If
+                End While
+            End If
         End If
         If NextMandatorySeq < curseq Then
             Interchange.AddError("Mandatory Record Not Found: " & NextMandatorySeq & " " & SaveMandRecName & " looking for: " & recordName, Interchange.Error_Type_List.StdError)

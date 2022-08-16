@@ -10,17 +10,17 @@ Public Class RecDefItem
     Private _mytype As String
     Private _myrepeat As String
     Private _EndTrigger As String
-    Private _myloop As List(Of RecDefItem)
+    Private _myloop As List(Of RecDefItem) = New List(Of RecDefItem)
     Private _LastRecord As String
     Private _Mandatory As String
-    Private _Parent As Object
+    Private _ParentList As List(Of RecDefItem)
 
-    Property Parent As Object
+    Property ParentList As List(Of RecDefItem)
         Get
-            Return _Parent
+            Return _ParentList
         End Get
         Set
-            _Parent = Value
+            _ParentList = Value
         End Set
     End Property
 
