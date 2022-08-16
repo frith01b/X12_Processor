@@ -192,16 +192,10 @@ Public Class RecordSet
 
         Dim myrecdefitem As RecDefItem = New RecDefItem
         Dim SubItemList As List(Of RecDefItem)
-
-
-        '  Dim NewRecDefList As List(Of RecDefItem) = New List(Of RecDefItem)
         Dim myloopList As List(Of Object)
         Dim rec_list_found As Boolean = False
         Dim loop_found As Boolean = False
         Dim loopx As Integer
-
-        '     NewRecDefList.Add(New RecDefItem)
-        '    myrecdefitem = NewRecDefList(NewRecDefList.Count - 1)
 
         For loopx = 0 To myDefBlob.Count - 1
             ' find all keys before executing any action
@@ -276,15 +270,6 @@ Public Class RecordSet
             End If
         Next
 
-        'Dim fullyQualifiedClassName As String = "System.Windows.Forms.Button"
-        'Dim o = fetchInstance(fullyQualifiedClassName)
-        '' sometime later where you can narrow down the type or interface...
-        'Dim b = CType(o, Control)
-        'b.Text = "test"
-        'b.Top = 10
-        'b.Left = 10
-        'Controls.Add(b)
-        ' Ensure List is in Sequence order by sorting it by seq field numerically
         NewRecDefList.Sort(Function(X As RecDefItem, Y As RecDefItem)
                                Select Case CInt(X.Seq)
                                    Case Is < CInt(Y.Seq) : Return -1
@@ -357,13 +342,6 @@ Public Class RecordSet
                         ' multiple loops together
                         myloopList = myDefBlob(loopX).Value
                     End If
-                    'DefRec_Count = DefRec_Count + 1
-                    'subRecDefItem = New RecDefItem
-                    'MakeRecDef(myDefBlob(x).Value, subRecDefItem, LoopParent)
-                    'myRecDefItem.myloop.Add(subRecDefItem)
-                    'If Interchange.debugflag Then
-                    '    Debug.Print("Rec " & myRecDefItem.myloop.Count & "-" & myRecDefItem.myloop(myRecDefItem.myloop.Count - 1).recname & " T" & LoopParent(LoopParent.Count - 1).mytype & " E" & LoopParent(LoopParent.Count - 1).EndTrigger & " #" & LoopParent(LoopParent.Count - 1).Seq & " L" & LoopParent(LoopParent.Count - 1).LastRecord & " M" & LoopParent(LoopParent.Count - 1).Mandatory)
-                    'End If
 
                     For Each myloop In myloopList
                         DefRec_Count = DefRec_Count + 1
@@ -396,32 +374,22 @@ Public Class RecordSet
                         myloopList = myDefBlob(loopx).Value
                     End If
 
-                    'DefRec_Count = DefRec_Count + 1
-                    '    'myRecDefItem = New RecDefItem
-                    '    subRecDefList = MakeLoop(myDefBlob(loopx).Value, myRecDefItem.myloop)
-                    '    For Each subrec In subRecDefList
-                    '        myRecDefItem.myloop.Add(subrec)
-                    '    Next subrec
-                    '    If Interchange.debugflag Then
-                    '        Debug.Print("Loop1 " & LoopParent.Count & "-" & LoopParent(LoopParent.Count - 1).recname & " T" & LoopParent(LoopParent.Count - 1).mytype & " E" & LoopParent(LoopParent.Count - 1).EndTrigger & " #" & LoopParent(LoopParent.Count - 1).Seq & " L" & LoopParent(LoopParent.Count - 1).LastRecord & " M" & LoopParent(LoopParent.Count - 1).Mandatory)
-                    '    End If
-
                     For Each myloop In myloopList
-                            DefRec_Count = DefRec_Count + 1
-                            If myRecDefItem.recname = "" Then
-                                MakeRecDef(myloop, myRecDefItem, LoopParent)
-                            End If
-                            subRecDefList = MakeLoop(myloop, myRecDefItem.myloop)
-                            For Each subrec In subRecDefList
-                                myRecDefItem.myloop.Add(subrec)
-                            Next subrec
-                            myRecDefItem.ParentList = LoopParent
-                            retVal.Add(myRecDefItem)
-                            myRecDefItem = New RecDefItem
-                            If Interchange.debugflag Then
-                                Debug.Print("LoopM " & LoopParent.Count & "-" & LoopParent(LoopParent.Count - 1).recname & " T" & LoopParent(LoopParent.Count - 1).mytype & " E" & LoopParent(LoopParent.Count - 1).EndTrigger & " #" & LoopParent(LoopParent.Count - 1).Seq & " L" & LoopParent(LoopParent.Count - 1).LastRecord & " M" & LoopParent(LoopParent.Count - 1).Mandatory)
-                            End If
-                        Next myloop
+                        DefRec_Count = DefRec_Count + 1
+                        If myRecDefItem.recname = "" Then
+                            MakeRecDef(myloop, myRecDefItem, LoopParent)
+                        End If
+                        subRecDefList = MakeLoop(myloop, myRecDefItem.myloop)
+                        For Each subrec In subRecDefList
+                            myRecDefItem.myloop.Add(subrec)
+                        Next subrec
+                        myRecDefItem.ParentList = LoopParent
+                        retVal.Add(myRecDefItem)
+                        myRecDefItem = New RecDefItem
+                        If Interchange.debugflag Then
+                            Debug.Print("LoopM " & LoopParent.Count & "-" & LoopParent(LoopParent.Count - 1).recname & " T" & LoopParent(LoopParent.Count - 1).mytype & " E" & LoopParent(LoopParent.Count - 1).EndTrigger & " #" & LoopParent(LoopParent.Count - 1).Seq & " L" & LoopParent(LoopParent.Count - 1).LastRecord & " M" & LoopParent(LoopParent.Count - 1).Mandatory)
+                        End If
+                    Next myloop
 
             End Select
         Next loopx
@@ -611,8 +579,6 @@ Public Class RecordSet
             Interchange.AddError("Mandatory Record Not Found: " & NextMandatorySeq & " " & SaveMandRecName & " looking for: " & recordName, Interchange.Error_Type_List.StdError)
             RetVal.NextRecPosition = FinderInfo.Rec_Def_Relation.Mandatory_Missing
         End If
-
-
         Return RetVal
     End Function
 End Class
