@@ -12,13 +12,14 @@ Public Sub New()
         SegmentDef.Name = "IEA"
         SegmentDef.FieldDefList.Add(New FieldDef("F01_GROUP_QTY", "ALPHA", 5, "NONE", "No", 0, "", "NONE", " ", ""))
         SegmentDef.FieldDefList.Add(New FieldDef("F02_END_ICN", "NUMERIC", 15, "NONE", "No", 0, "#,###.00", "NONE", " ", ""))
-        
-dim writer as  New System.Xml.Serialization.XmlSerializer(GetType(FieldDefSet))
-        Dim file As New System.IO.Streamwriter(Path:=ConfigInfo.SegmentDefDir  & "\" &  SegmentDef.Name & ".def")
+
+        Dim writer As New System.Xml.Serialization.XmlSerializer(GetType(FieldDefSet))
+        Dim file As New System.IO.Streamwriter(Path:=ConfigInfo.SegmentDefDir & "\" & SegmentDef.Name & ".def")
         MyBase.FieldDefs = SegmentDef
-writer.Serialize(file, SegmentDef)
+        writer.Serialize(file, SegmentDef)
         file.Close()
 
 
     End Sub
+
 End class

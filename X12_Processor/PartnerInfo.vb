@@ -9,18 +9,12 @@ Public Class PartnerInfo
     ''' Interaction/Map / X12 Version
     Private _Version As String
     ''' From X12 ID Vendor ID to Host  (how they identify themselves to us
+    Private _Sender_Qualifier As String
     Private _Sender_to_Host_ID As String
-    Private _Sender_Qualifier As Object
-    Private _Host_Qualifier As Object
-    Property Common_Name As String
-        Get
-            Return _Common_Name
-        End Get
-        Set
-            _Common_Name = Value
-        End Set
-    End Property
-
+    ' How They identify us as  receiver
+    Private _Host_Qualifier As String
+    Private _Host_to_Sender_ID As String
+    Private _Common_Name As String
     ''' Adjustments to transaction processing
     Private _Customizations As Dictionary(Of String, String)
 
@@ -70,24 +64,31 @@ Public Class PartnerInfo
         'Default = get from file
         SetPartnerID("FROM_AS2")
     End Sub
-    Public Function GetHost_Qualifier() As Object
+    Property Common_Name As String
+        Get
+            Return _Common_Name
+        End Get
+        Set
+            _Common_Name = Value
+        End Set
+    End Property
+
+    Public Function GetHost_Qualifier() As String
         Return _Host_Qualifier
     End Function
 
-    Public Sub SetHost_Qualifier(AutoPropertyValue As Object)
+    Public Sub SetHost_Qualifier(AutoPropertyValue As String)
         _Host_Qualifier = AutoPropertyValue
     End Sub
 
-    Public Function GetSender_Qualifier() As Object
+    Public Function GetSender_Qualifier() As String
         Return _Sender_Qualifier
     End Function
 
-    Public Sub SetSender_Qualifier(AutoPropertyValue As Object)
+    Public Sub SetSender_Qualifier(AutoPropertyValue As String)
         _Sender_Qualifier = AutoPropertyValue
     End Sub
     ''' to X_12 ID Vendor ID to Host ( how they want to identify us when sending
-    Private _Host_to_Sender_ID As String
-    Private _Common_Name As String
     ''' AS2 Host ID 
     Property Host_ID As String
 
@@ -106,9 +107,6 @@ Public Class PartnerInfo
     Public Sub SetSender_to_Host_ID(AutoPropertyValue As String)
         _Sender_to_Host_ID = AutoPropertyValue
     End Sub
-
-
-
 
     Public Function GetVersion() As String
         Return _Version

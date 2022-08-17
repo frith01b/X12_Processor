@@ -93,7 +93,7 @@ LookTwice:
         ProcessedDir = FileLoadDir & "\Processed"
         OutputDir = "C:\EDI\OUTBOUND"
         OutputFormatFile = "C:\temp\EDI\X12_OutputFormat.conf"
-        OutputType = File_Format_List.Delimited
+        OutputType = File_Format_List.X12
         SegmentDefDir = "C:\temp\EDI\SEGDEF"
         RecordSetDir = "C:\temp\EDI\RECDEF"
 

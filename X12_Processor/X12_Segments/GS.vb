@@ -22,7 +22,6 @@
         MyBase.FieldDefs = SegmentDef
         writer.Serialize(file, SegmentDef)
         file.Close()
-
-
     End Sub
+
 End class

@@ -7,15 +7,17 @@ Imports System.Xml
 Imports X12_Processor
 Imports XmlToDynamic.Core
 Imports System.Reflection
+Imports System.IO
 
 Interface RecordSetMethods_Intf
     Sub Import_X12(SegID As String, Seg As ParseSegment, SourceRecNum As Long)
-    Function GetData() As RecordSet
+    Function GetData() As List(Of SegTranslate)
     ' Filter removes extraneous notes/data
     Function Filter() As String()
     'Remap adjusts incoming data to correct item #'s, code values , etc
     Sub ReMap()
     Function Output_X12() As String
+    Function Output_X12(ExportFilename As String) As String
     Function Validate() As Boolean
 
     Sub Load_RecordDef()
@@ -23,6 +25,7 @@ Interface RecordSetMethods_Intf
     Sub Save_RecordDef()
 
     Property PrevSegSeq As Long
+    Property rec_type As String
 
 End Interface
 
@@ -30,6 +33,9 @@ End Interface
 Public Class RecordSet
     Inherits DynamicObject
     Implements RecordSetMethods_Intf
+
+    Private _rec_type As String
+    Private _PrevSegSeq As Long = 0
 
     Public Const MAX_Seq_Const = 9999999
 
@@ -40,7 +46,6 @@ Public Class RecordSet
     Dim Current_Rec_ListPtr As List(Of SegTranslate)
     ' _PrevSeq: keeps track of prior record position in definition.
     Dim Current_Rec_data As SegTranslate
-    Dim _PrevSegSeq As Long = 0
 
     '  Dim myxmlDyn As XmlToDynamic.Core.Extensions
 
@@ -70,6 +75,15 @@ Public Class RecordSet
         End Get
         Set(value As Long)
             _PrevSegSeq = value
+        End Set
+    End Property
+
+    Public Property rec_type As String Implements RecordSetMethods_Intf.rec_type
+        Get
+            Return _rec_type
+        End Get
+        Set(value As String)
+            _rec_type = value
         End Set
     End Property
 
@@ -167,8 +181,8 @@ Public Class RecordSet
         file.Close()
     End Sub
 
-    Public Function GetData() As RecordSet Implements RecordSetMethods_Intf.GetData
-        Throw New NotImplementedException()
+    Public Function GetData() As List(Of SegTranslate) Implements RecordSetMethods_Intf.GetData
+        Return Rec_Data
     End Function
 
     Public Function Filter() As String() Implements RecordSetMethods_Intf.Filter
@@ -176,15 +190,46 @@ Public Class RecordSet
     End Function
 
     Public Function Output_X12() As String Implements RecordSetMethods_Intf.Output_X12
-        Throw New NotImplementedException()
+
+        Return Output_X12(Interchange.CurrentConfigInfo.Output_Dir & "\" & "Filename" & "." & rec_type)
     End Function
+
+    Public Function Output_X12(ExpFileName As String) As String Implements RecordSetMethods_Intf.Output_X12
+        Dim output_ptr As StreamWriter = Nothing
+        Dim utf8WithoutBom As New System.Text.UTF8Encoding(False)
+
+        Try
+            output_ptr = New StreamWriter(ExpFileName, False, utf8WithoutBom)
+        Catch ex As Exception
+            Interchange.AddError("Unable To Open output file:" & ExpFileName, Interchange.Error_Type_List.StdError)
+        End Try
+        For Each rec In Rec_Data
+            OutputX12Rec_and_Children(rec, output_ptr)
+        Next rec
+        output_ptr.Close()
+        Return "Completed"
+    End Function
+
+    Private Sub OutputX12Rec_and_Children(outRec As SegTranslate, outPtr As StreamWriter)
+        'loopholder doesnt get any output, just the loop records.
+        If outRec.GetType <> GetType(LoopHolder) Then
+            outPtr.Write(outRec.Output_X12() & Interchange.RecordDelimiter)
+        End If
+
+        If Not outRec.LoopData Is Nothing Then
+            For Each mychildRec In outRec.LoopData
+                OutputX12Rec_and_Children(mychildRec, outPtr)
+            Next
+        End If
+    End Sub
 
     Public Function Validate() As Boolean Implements RecordSetMethods_Intf.Validate
         Throw New NotImplementedException()
     End Function
 
-    Public Sub UpdateRecSetDefFile(NewRecFile As String)
+    Public Sub UpdateRecSetDefFile(NewRecFile As String, RectypeID As String)
         RecSetDefFile = NewRecFile
+        _rec_type = RectypeID
     End Sub
 
     Public Sub RecurseRecDef(myDefBlob As ExpandoObject, ByRef NewRecDefList As List(Of RecDefItem))

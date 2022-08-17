@@ -41,11 +41,11 @@ Module Module1
                     If Not Interchange.hasErrors Then
                         ' PostProcess includes record cleanup, substitutions, filtering, and re-format prep
                         edi_processor.PostProcess()
-                        edi_processor.Export("C:\temp\EDI\Output.x12")
+                        edi_processor.Export("C:\temp\EDI\Output\RecData.850")
 
                         If Not Interchange.hasErrors Then
                             ' wont over-write existing, always adds timestamp to processed files and unique Xmit #.
-                            edi_processor.Export("C:\temp\EDI\Output.x12")
+                            edi_processor.Export("C:\temp\EDI\Output\RecData.850")
                         Else
                             b_success = False
                             Interchange.Dump_X12_Errors()

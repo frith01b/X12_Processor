@@ -215,12 +215,14 @@ Public Class Segment
         FieldList = _Fields.Keys.ToList()
         FieldList.Sort()
 
+        ' add record name
+        RESULT = RESULT & RecordName & Interchange.FieldDelimiter
 
 
         For x = 0 To FieldList.Count - 1
             'need to substring & PAD & Strip quotes
 
-            Select Case FieldDefs.FieldDefList(x).Alignment
+            Select Case FieldDefs.FieldDefList(x).Alignment.ToUpper
                 Case "LPAD"
                     ' should be getfield that calls these as subs
                     RESULT = RESULT & Get_Field_LPAD(_Fields(FieldList(x)), FieldDefs.FieldDefList(x).FLength, FieldDefs.FieldDefList(x).Padding)
@@ -230,6 +232,11 @@ Public Class Segment
                     RESULT = RESULT & Get_Field_ZPAD(_Fields(FieldList(x)), FieldDefs.FieldDefList(x).FLength, FieldDefs.FieldDefList(x).Padding)
                 Case "RAW"
                     RESULT = RESULT & _Fields(FieldList(x))
+                Case "NONE"
+                    RESULT = RESULT & _Fields(FieldList(x))
+                Case Else
+                    RESULT = RESULT & _Fields(FieldList(x))
+
             End Select
 
             If x = FieldList.Count - 1 Then
@@ -264,10 +271,15 @@ Public Class Segment
         Return outField
     End Function
     Function Get_Field_LPAD(ByRef outField As String, myLen As Integer, myPad As String) As String
+        ' ensure data does not contain field/element delimiter
+        If Not outField Is Nothing Then
+            outField = outField.Replace(Interchange.FieldDelimiter, Interchange.FieldDelimiter_Replace_Char)
+        Else
+            outField = ""
+        End If
         ' add padding character to beginning, limit max size to myLen
-        outField = outField.Replace(Interchange.FieldDelimiter, Interchange.FieldDelimiter_Replace_Char)
         outField = String.Join("", Enumerable.Repeat(myPad, myLen)) & outField
-        outField = Right(outField, myLen) & Interchange.FieldDelimiter
+        outField = outField.Substring(myLen) & Interchange.FieldDelimiter
         Return (outField)
 
     End Function

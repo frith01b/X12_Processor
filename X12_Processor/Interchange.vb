@@ -43,7 +43,15 @@ Public Class Interchange
     Public ExcelFile() As String
     Public ExcelFileCount As Long
     Public valid_x12 As Boolean = True
-    Public rec_type As String = "UNK"
+    Public Property rec_type As String
+        Get
+            Return _rec_type
+        End Get
+        Set
+            _rec_type = Value
+        End Set
+    End Property
+
     Public CurrentRecordset As RecordSet
 
     Dim InputStream As IO.Stream
@@ -71,6 +79,7 @@ Public Class Interchange
     Dim di As IO.DirectoryInfo
     Dim singlefile As IO.FileInfo
     Dim local_errorWriter As TextWriter
+    Private _rec_type As String = "UNK"
     '*********************END OF CLASS VARIABLES ***************************
 
     '''input_file.Name, s_ErrorFile, s_ConfigFile, s_PartnerID)
@@ -343,10 +352,13 @@ Public Class Interchange
 
     End Sub
 
+
     Private Sub Export_X12(ExpFileName As String)
         ' @TODO Need to create map to/from for X12
         ' @TODO need to read destination partner information on format.
         ' using same definition for now.
+
+        CurrentRecordset.Output_X12(ExpFileName)
 
     End Sub
 
