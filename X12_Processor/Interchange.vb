@@ -13,7 +13,7 @@ Imports X12_Processor
 
 Public Class Interchange
     ' debugflag: print extra messages during execution
-    Public Shared debugflag As Boolean = False
+    Public Shared debugflag As Boolean = True
     Public Shared hasErrors As Boolean = False
     Public Shared ErrorMsg() As String
     Public Shared ErrorCount As Integer
@@ -33,6 +33,15 @@ Public Class Interchange
     Public Shared CurrentConfigInfo As ConfigInfo
     Public Shared CurrentPartnerInfo As PartnerInfo
     Public Shared MoreFiles As Boolean = False
+    Public Property CurrentImportFile As String
+        Get
+            Return _CurrentImportFile
+        End Get
+        Set
+            _CurrentImportFile = Value
+        End Set
+    End Property
+
     Public Enum Error_Type_List
         Normal = 1
         Warning = 2
@@ -80,6 +89,7 @@ Public Class Interchange
     Dim singlefile As IO.FileInfo
     Dim local_errorWriter As TextWriter
     Private _rec_type As String = "UNK"
+    Private _CurrentImportFile As String
     '*********************END OF CLASS VARIABLES ***************************
 
     '''input_file.Name, s_ErrorFile, s_ConfigFile, s_PartnerID)
@@ -233,18 +243,18 @@ Public Class Interchange
     ''' 
     ''' </summary>
     Public Sub ImportNextFile()
-        Dim NextFilename As String
+
         Dim pos As Integer
         If ConfigInfo.InputFileType = 0 Then
             ConfigInfo.InputFileType = File_Format_List.X12
         End If
         If ProcessFileList.Count > 0 Then
 
-            NextFilename = ProcessFileList(0).FullName
+            CurrentImportFile = ProcessFileList(0).FullName
             '@TODO  check for input file type, branch on other types
-
+            RecordCount = 0
             If ProcessFileList(0).Length > 0 Then
-                reader = New StreamReader(NextFilename)
+                reader = New StreamReader(CurrentImportFile)
                 '
                 reader.ReadBlock(msg_header, 0, 10)
                 message = msg_header
@@ -287,7 +297,7 @@ Public Class Interchange
 
                                 End Try
                             Else
-                                AddError("Start Record not found (ST) in file " & NextFilename, Error_Type_List.Critical)
+                                AddError("Start Record not found (ST) in file " & CurrentImportFile, Error_Type_List.Critical)
                             End If
                         End If
                     Else
@@ -388,6 +398,7 @@ Public Class Interchange
             Case "850"
                 ' Load Record Set Definition
                 CurrentRecordset = New X12_850_Request_RecordSet
+                CurrentRecordset.CurrentImpFile = CurrentImportFile
                 Merge_Data()
             Case "855"
             Case "856"

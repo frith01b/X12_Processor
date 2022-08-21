@@ -24,6 +24,7 @@ Module Module1
 
     Dim db_Sql As X12_Processor.DB_Util = Nothing
     Dim b_success As Boolean = True
+    Dim OutputPath As String
 
     Sub Main()
         Call X12_Processor.Utility.ParseArgs(dict_NamedArgs)
@@ -31,6 +32,13 @@ Module Module1
         If (dict_NamedArgs.Count > 0) Then
 
             Dim edi_processor As New X12_Processor.Interchange(dict_NamedArgs)
+            OutputPath = Interchange.CurrentConfigInfo.Output_Dir
+            If OutputPath.Trim.Length = 0 Then
+                OutputPath = "c:\temp"
+                If Not Directory.Exists(OutputPath) Then
+                    Directory.CreateDirectory(OutputPath)
+                End If
+            End If
             If Not Interchange.hasErrors Then
                 edi_processor.FindFiles()
                 While Interchange.MoreFiles And Not Interchange.hasErrors
@@ -41,11 +49,10 @@ Module Module1
                     If Not Interchange.hasErrors Then
                         ' PostProcess includes record cleanup, substitutions, filtering, and re-format prep
                         edi_processor.PostProcess()
-                        edi_processor.Export("C:\temp\EDI\Output\RecData.850")
 
                         If Not Interchange.hasErrors Then
                             ' wont over-write existing, always adds timestamp to processed files and unique Xmit #.
-                            edi_processor.Export("C:\temp\EDI\Output\RecData.850")
+                            edi_processor.Export(OutputPath & "\" & Path.GetFileNameWithoutExtension(edi_processor.CurrentImportFile) & ".850")
                         Else
                             b_success = False
                             Interchange.Dump_X12_Errors()

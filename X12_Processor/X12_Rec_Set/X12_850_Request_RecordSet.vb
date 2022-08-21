@@ -19,6 +19,7 @@ Public Class X12_850_Request_RecordSet
         Else
             ' load from shared member
             RecDefList = Rec_Def_850
+            MyBase.ResetCurrrentPtr()
         End If
     End Sub
 
