@@ -54,7 +54,7 @@ Public Class RecDefItem
 
     Property mytype As String
         Get
-            If Not _mytype Is Nothing Then
+            If _mytype IsNot Nothing Then
                 Return _mytype
             Else
                 Return ""
@@ -67,7 +67,7 @@ Public Class RecDefItem
 
     Property myrepeat As String
         Get
-            If Not _myrepeat Is Nothing Then
+            If _myrepeat IsNot Nothing Then
                 Return _myrepeat
             Else
                 Return ""
@@ -80,7 +80,7 @@ Public Class RecDefItem
     End Property
     Property LastRecord As String
         Get
-            If Not _LastRecord Is Nothing Then
+            If _LastRecord IsNot Nothing Then
                 Return _LastRecord
             Else
                 Return ""
@@ -94,7 +94,7 @@ Public Class RecDefItem
 
     Property Mandatory As String
         Get
-            If Not _Mandatory Is Nothing Then
+            If _Mandatory IsNot Nothing Then
                 Return _Mandatory
             Else
                 Return ""
@@ -107,7 +107,7 @@ Public Class RecDefItem
 
     Property EndTrigger As String
         Get
-            If Not _EndTrigger Is Nothing Then
+            If _EndTrigger IsNot Nothing Then
                 Return _EndTrigger
             Else
                 Return ""

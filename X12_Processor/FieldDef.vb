@@ -18,7 +18,7 @@
         FType = Ftype1
         FLength = Flength1
         FCodeTableName = FcodeTableName1
-        If Mandatory1.ToUpper = "YES" Or Mandatory1.ToUpper = "TRUE" Then
+        If Mandatory1.ToUpper = "YES" OrElse Mandatory1.ToUpper = "TRUE" Then
             Mandatory = True
         Else
             Mandatory = False

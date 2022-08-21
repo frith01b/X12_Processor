@@ -58,7 +58,7 @@ Public Class DB_Util
 
     Public Sub DoRowMethod(NewData As DataTable)
         'check to see if there is anything to Invoke
-        If Not _RowProcessor = Nothing Then
+        If _RowProcessor <> Nothing Then
             Try
                 _RowProcessor.DynamicInvoke(NewData)
             Catch ex As SqlException
@@ -102,7 +102,7 @@ Public Class DB_Util
             ErrorEx = ex
         End Try
 
-        OpenDatabase = ErrorVal
+        Return ErrorVal
 
     End Function
     '''***************************************************************************************
@@ -120,7 +120,7 @@ Public Class DB_Util
             ErrorEx = ex
         End Try
 
-        OpenDatabase = ErrorVal
+        Return ErrorVal
 
     End Function
     '''***************************************************************************************
@@ -158,7 +158,7 @@ Public Class DB_Util
             sql_errorWriter.WriteLine("end Gather data sql " & ds.Tables(0).Rows.Count)
         End If
 
-        GatherData = ErrorVal
+        Return ErrorVal
 
     End Function
     '''***************************************************************************************
@@ -184,7 +184,7 @@ Public Class DB_Util
             sql_errorWriter.WriteLine("end Gather data sql " & ds.Tables(0).Rows.Count)
         End If
 
-        GatherData = ErrorVal
+        Return ErrorVal
 
     End Function
     ' execute prepped & loaded param data gather
@@ -210,7 +210,7 @@ Public Class DB_Util
             sql_errorWriter.WriteLine("end Gather data sql " & ds.Tables(0).Rows.Count)
         End If
 
-        GatherData_Execute = ErrorVal
+        Return ErrorVal
 
     End Function
 
@@ -246,7 +246,7 @@ Public Class DB_Util
         End Try
 
 
-        UpdateData = retVal
+        Return retVal
 
     End Function
     '''***************************************************************************************
@@ -263,7 +263,7 @@ Public Class DB_Util
             ErrorEx = ex
         End Try
 
-        UpdateData = retVal
+        Return retVal
 
     End Function
     '''***************************************************************************************
@@ -318,11 +318,9 @@ Public Class DB_Util
                 End If
             End Using
         End Using
-        ProcessSqlByRow = RetVal
+        Return RetVal
     End Function
-    Sub testsub(thistab As Data.DataTable)
 
-    End Sub
     '''***************************************************************************************
 
 
@@ -343,10 +341,9 @@ Public Class DB_Util
 
     ''' IDisposable
     Protected Overridable Sub Dispose(disposing As Boolean)
-        If Not Me.disposedValue Then
-            If disposing Then
-                ' TODO: dispose managed state (managed objects).
-            End If
+        If Not Me.disposedValue AndAlso disposing Then
+
+            ' TODO: dispose managed state (managed objects).
 
             ' TODO: free unmanaged resources (unmanaged objects) and override Finalize() below.
             ' TODO: set large fields to null.
@@ -401,7 +398,7 @@ Public Class DB_Util
         End Try
 
 
-        RunStoredProc = retVal
+        Return retVal
 
     End Function
     '''***************************************************************************************
@@ -420,7 +417,7 @@ Public Class DB_Util
             ErrorEx = ex
         End Try
 
-        RunStoredProc = retVal
+        Return retVal
 
     End Function
     '''***************************************************************************************

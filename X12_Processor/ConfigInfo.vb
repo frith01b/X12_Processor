@@ -38,45 +38,29 @@ Public Class ConfigInfo
     '''**********************************************************
     Public Shared Function FromFile(MyConfigFile As String) As ConfigInfo
         Dim retry As Integer = 0
+        Dim objStreamReader As StreamReader
+        Dim serializer As Serialization.XmlSerializer
+        Dim LocalConfig As ConfigInfo
 
 LookTwice:
         If File.Exists(MyConfigFile) Then
-            Dim objStreamReader As New StreamReader(MyConfigFile)
-            Dim serializer As New Serialization.XmlSerializer(GetType(ConfigInfo))
-            Dim LocalConfig As ConfigInfo
+            Try
 
-            LocalConfig = DirectCast(serializer.Deserialize(objStreamReader), ConfigInfo)
+                objStreamReader = New StreamReader(MyConfigFile)
+                serializer = New Serialization.XmlSerializer(GetType(ConfigInfo))
+
+                LocalConfig = DirectCast(serializer.Deserialize(objStreamReader), ConfigInfo)
+            Catch ex As Exception
+                retry = retry + 1
+                If retry < 2 Then
+#Disable Warning S907 ' "GoTo" statements should not be used
+                    GoTo LookTwice
+#Enable Warning S907 ' "GoTo" statements should not be used
+                End If
+                LocalConfig = Nothing
+            End Try
 
             Return LocalConfig
-            'Dim xmlFile As XmlReader
-            'xmlFile = XmlReader.Create(MyConfigFile, New XmlReaderSettings())
-            'Dim ds As New DataSet
-            'ds.ReadXml(xmlFile)
-            'Dim i As Integer
-            'For i = 0 To ds.Tables(0).Rows.Count - 1
-            '    Select Case ds.Tables(0).Rows(i).Item(0).ToString
-            '        Case "Configfile"
-            '            Configfile = ds.Tables(0).Rows(i).Item(1).ToString
-            '        Case "ConfigDIR"
-            '            ConfigDIR = ds.Tables(0).Rows(i).Item(1).ToString
-            '        Case "FileLoadDir"
-            '            ds.Tables(0).Rows(i).Item(1).ToString()
-            '        Case "PartnerDir"
-            '            PartnerDir = ds.Tables(0).Rows(i).Item(1).ToString
-            '        Case "PartnerID"
-            '            PartnerDir = ds.Tables(0).Rows(i).Item(1).ToString
-            '        Case "ProcessedDir"
-            '            ProcessedDir = ds.Tables(0).Rows(i).Item(1).ToString
-            '        Case "OutputDir"
-            '            OutputDir = ds.Tables(0).Rows(i).Item(1).ToString
-            '        Case "TranDefDir"
-            '            SegmentDefDir = ds.Tables(0).Rows(i).Item(1).ToString
-            '        Case "RecordSetDir"
-            '            RecordSetDir = ds.Tables(0).Rows(i).Item(1).ToString
-            '        Case Else
-            '    End Select
-            'Next
-
         Else
             Return Nothing
         End If

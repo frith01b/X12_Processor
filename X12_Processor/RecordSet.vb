@@ -62,7 +62,7 @@ Public Class RecordSet
     Public Shared DefRec_Count As Long
     ' RecDefObj = placeholder for incoming dynamic definition prior to de-coding
     Dim RecDefObj As ExpandoObject
-    Shared TypedRecDef() As RecDefItem
+    Shared TypedRecDef As RecDefItem()
     Public RecDefList As List(Of RecDefItem) = New List(Of RecDefItem)
 
     Public Sub New()
@@ -147,7 +147,7 @@ Public Class RecordSet
     End Sub
 
     Public Sub ReMap() Implements RecordSetMethods_Intf.ReMap
-        Throw New NotImplementedException()
+        Debug.Print("not yet implemented")
     End Sub
 
     Public Sub Load_RecordDef() Implements RecordSetMethods_Intf.Load_RecordDef
@@ -159,7 +159,7 @@ Public Class RecordSet
         RecDefObj = Extensions.ToDynamic(XDocument.Parse(Myfile.ReadToEnd()))
         ' @TODO  add rec types to definition
         For loopX = 0 To RecDefObj.Count - 1
-            If Not RecDefObj(loopX).Key Is Nothing Then
+            If RecDefObj(loopX).Key IsNot Nothing Then
                 Select Case RecDefObj(loopX).Key.ToUpper
                     Case "#COMMENT"
                             'ignore
@@ -204,7 +204,7 @@ Public Class RecordSet
     End Function
 
     Public Function Filter() As String() Implements RecordSetMethods_Intf.Filter
-        Throw New NotImplementedException()
+        Debug.Print("not yet implemented")
     End Function
 
     Public Function Output_X12() As String Implements RecordSetMethods_Intf.Output_X12
@@ -212,14 +212,14 @@ Public Class RecordSet
         Return Output_X12(Interchange.CurrentConfigInfo.Output_Dir & "\" & Path.GetFileNameWithoutExtension(CurrentImpFile) & "." & rec_type)
     End Function
 
-    Public Function Output_X12(ExpFileName As String) As String Implements RecordSetMethods_Intf.Output_X12
+    Public Function Output_X12(ExportFileName As String) As String Implements RecordSetMethods_Intf.Output_X12
         Dim output_ptr As StreamWriter = Nothing
         Dim utf8WithoutBom As New System.Text.UTF8Encoding(False)
 
         Try
-            output_ptr = New StreamWriter(ExpFileName, False, utf8WithoutBom)
+            output_ptr = New StreamWriter(ExportFileName, False, utf8WithoutBom)
         Catch ex As Exception
-            Interchange.AddError("Unable To Open output file:" & ExpFileName, Interchange.Error_Type_List.StdError)
+            Interchange.AddError("Unable To Open output file:" & ExportFileName, Interchange.Error_Type_List.StdError)
         End Try
         For Each rec In Rec_Data
             OutputX12Rec_and_Children(rec, output_ptr)
@@ -234,7 +234,7 @@ Public Class RecordSet
             outPtr.Write(outRec.Output_X12() & Interchange.RecordDelimiter)
         End If
 
-        If Not outRec.LoopData Is Nothing Then
+        If outRec.LoopData IsNot Nothing Then
             For Each mychildRec In outRec.LoopData
                 OutputX12Rec_and_Children(mychildRec, outPtr)
             Next
@@ -242,7 +242,7 @@ Public Class RecordSet
     End Sub
 
     Public Function Validate() As Boolean Implements RecordSetMethods_Intf.Validate
-        Throw New NotImplementedException()
+        Debug.Print("not yet implemented")
     End Function
 
     Public Sub UpdateRecSetDefFile(NewRecFile As String, RectypeID As String)
@@ -333,7 +333,7 @@ Public Class RecordSet
         Dim curseq As Long = 0
 
         ' check siblings first
-        If Not LocalDefPtr Is Nothing Then
+        If LocalDefPtr IsNot Nothing Then
             For Each rec In LocalDefPtr
                 If recordName = rec.mytype Then
                     If rec.Seq < _PrevSegSeq Then
@@ -345,7 +345,7 @@ Public Class RecordSet
                     Exit For
 
                 Else
-                    If rec.Mandatory.ToUpper = "Y" And rec.Seq > _PrevSegSeq And NextMandatorySeq = MAX_Seq_Const And rec.myloop.Count = 0 Then
+                    If rec.Mandatory.ToUpper = "Y" AndAlso rec.Seq > _PrevSegSeq AndAlso NextMandatorySeq = MAX_Seq_Const AndAlso rec.myloop.Count = 0 Then
                         NextMandatorySeq = rec.Seq
                         SaveMandRecName = rec.mytype
                         Exit For
@@ -368,7 +368,7 @@ Public Class RecordSet
                         Exit For
 
                     Else
-                        If thisloop.Mandatory.ToUpper = "Y" And rec.myloop.Count = 0 And NextMandatorySeq = MAX_Seq_Const Then
+                        If thisloop.Mandatory.ToUpper = "Y" AndAlso rec.myloop.Count = 0 AndAlso NextMandatorySeq = MAX_Seq_Const Then
                             NextMandatorySeq = thisloop.Seq
                             SaveMandRecName = thisloop.mytype
                             Exit For
@@ -395,14 +395,14 @@ Public Class RecordSet
             Next rec
         End If
 
-        If searchParents And RetVal.NextRecPosition = FinderInfo.Rec_Def_Relation.NotFound Then
+        If searchParents AndAlso RetVal.NextRecPosition = FinderInfo.Rec_Def_Relation.NotFound Then
             ' check parent siblings 4th.
             Dim checkInfo As FinderInfo = New FinderInfo
             Dim ParentDefPtr As List(Of RecDefItem)
             ParentDefPtr = LocalDefPtr
             If ParentDefPtr.Count > 0 Then
 
-                While Not ParentDefPtr(0).ParentSiblingList Is Nothing AndAlso Not ParentDefPtr(0).ParentSiblingList(0).myloop Is Nothing And RetVal.NextRecPosition = FinderInfo.Rec_Def_Relation.NotFound
+                While ParentDefPtr(0).ParentSiblingList IsNot Nothing AndAlso ParentDefPtr(0).ParentSiblingList(0).myloop IsNot Nothing AndAlso RetVal.NextRecPosition = FinderInfo.Rec_Def_Relation.NotFound
                     ParentDefPtr = ParentDefPtr(0).ParentSiblingList
 
                     checkInfo = WhereIsNextSegment(ParentDefPtr, recordName, False)

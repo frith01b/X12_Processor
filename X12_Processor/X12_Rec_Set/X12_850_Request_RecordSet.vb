@@ -26,7 +26,7 @@ Public Class X12_850_Request_RecordSet
 
 
     Sub SetDefaults()
-
+        Debug.Print("not yet implemented")
     End Sub
     ' Public Overloads Sub Import(Seg As Segment, SourceRecNum As Long) Implements RecordFunctions.Import
 

@@ -15,7 +15,7 @@ Public Class Interchange
     ' debugflag: print extra messages during execution
     Public Shared debugflag As Boolean = True
     Public Shared hasErrors As Boolean = False
-    Public Shared ErrorMsg() As String
+    Public Shared ErrorMsg As String()
     Public Shared ErrorCount As Integer
     Public Shared ErrorType As Error_Type_List = Error_Type_List.Normal
 
@@ -49,7 +49,7 @@ Public Class Interchange
         Critical = 4
     End Enum
 
-    Public ExcelFile() As String
+    Public ExcelFile As String()
     Public ExcelFileCount As Long
     Public valid_x12 As Boolean = True
     Public Property rec_type As String
@@ -63,6 +63,9 @@ Public Class Interchange
 
     Public CurrentRecordset As RecordSet
 
+    Private _rec_type As String = "UNK"
+    Private _CurrentImportFile As String
+
     Dim InputStream As IO.Stream
     Dim ProcessFileList As List(Of FileInfo) = New List(Of FileInfo)
     Dim Myfilename As String
@@ -70,26 +73,22 @@ Public Class Interchange
     Private CurrentStore As String
     Private reader As StreamReader
     Private msg_header(500) As Char
-
     Private message As String
     '''last used transaction number, increase by 1 for each new dataset transmission
     Private rec_850_seq As Long
     Private rec_855_seq As Long
     Private rec_856_seq As Long
     Private rec_810_seq As Long
-
-    Private replace_char As String = "-"
+    Private PartnerX12_ID As String
 
     Dim Fileptr As System.IO.StreamWriter
     ''' un-processed record and field separated initial data from file
     Dim segments As IEnumerable(Of ParseSegment)
-
-
     Dim di As IO.DirectoryInfo
     Dim singlefile As IO.FileInfo
     Dim local_errorWriter As TextWriter
-    Private _rec_type As String = "UNK"
-    Private _CurrentImportFile As String
+    Shared s_ErrorFile As String = ""
+
     '*********************END OF CLASS VARIABLES ***************************
 
     '''input_file.Name, s_ErrorFile, s_ConfigFile, s_PartnerID)
@@ -102,7 +101,6 @@ Public Class Interchange
         ' destination dir
         Dim s_OutDir As String = ""
         ' exceptions file name
-        Dim s_ErrorFile As String = ""
         ' interchange ID for remote system
         Dim s_PartnerID As String = ""
         '  processing options file
@@ -147,7 +145,7 @@ Public Class Interchange
         End If
 
 
-        If s_ConfigFile Is Nothing And s_InFile Is Nothing And s_baseDir Is Nothing Then
+        If s_ConfigFile Is Nothing AndAlso s_InFile Is Nothing AndAlso s_baseDir Is Nothing Then
             AddError("Usage: " & vbCrLf & "   Process_X12_REC -indir c:\DIRNAME -outdir c:\outputdir -email admin@site.com -server SqlSrv-R2  -database  EDI " _
                 , Error_Type_List.Critical)
         Else
@@ -205,7 +203,8 @@ Public Class Interchange
         ds.ReadXml(xmlFile)
         Dim i As Integer
         For i = 0 To ds.Tables(0).Rows.Count - 1
-
+            '@TODO  finish this data load
+            Debug.Print("Placeholder")
         Next
     End Sub
     ''' <summary>
@@ -255,11 +254,12 @@ Public Class Interchange
             RecordCount = 0
             If ProcessFileList(0).Length > 0 Then
                 reader = New StreamReader(CurrentImportFile)
-                '
-                reader.ReadBlock(msg_header, 0, 10)
+
+                reader.ReadBlock(msg_header, 0, 55)
                 message = msg_header
+                PartnerX12_ID = message.Substring(35, 15).Trim()
                 If message.Length > 3 Then
-                    If message.Substring(0, 3) = "ISA" Or message.Substring(1, 3) = "ISA" Then
+                    If message.Substring(0, 3) = "ISA" OrElse message.Substring(1, 3) = "ISA" Then
                         reader.DiscardBufferedData()
                         reader.BaseStream.Seek(0, System.IO.SeekOrigin.Begin)
                         message = reader.ReadToEnd
@@ -278,12 +278,12 @@ Public Class Interchange
                             AddError("Inbound Error X12", Error_Type_List.Critical)
 
                         End Try
-                        pos = message.IndexOf(RecordDelimiter + "ST" + FieldDelimiter)
+                        pos = message.IndexOf(RecordDelimiter & "ST" & FieldDelimiter)
                         If pos > 0 Then
                             rec_type = message.Substring(pos + 4, 3)
                         Else
                             RecordDelimiter = vbCrLf
-                            pos = message.IndexOf(RecordDelimiter + "ST" + FieldDelimiter)
+                            pos = message.IndexOf(RecordDelimiter & "ST" & FieldDelimiter)
                             If pos > 0 Then
                                 rec_type = message.Substring(pos + 5, 3)
                                 Try
@@ -302,7 +302,7 @@ Public Class Interchange
                         End If
                     Else
                         ' not X12
-                        If message.Substring(0, 3) = """H""" Or message.Substring(1, 3) = """H""" Then
+                        If message.Substring(0, 3) = """H""" OrElse message.Substring(1, 3) = """H""" Then
                             RecordDelimiter = vbCrLf
                             FieldDelimiter = CChar("~")
                             Try
@@ -336,7 +336,8 @@ Public Class Interchange
 
     End Sub
     Public Sub PostProcess()
-
+        '@TODO this
+        Debug.Print("not yet implemented")
     End Sub
     Public Sub Export(ExportFilename As String)
         Select Case ConfigInfo.OutputType
@@ -349,17 +350,15 @@ Public Class Interchange
             Case File_Format_List.SQL
                 Export_SQL(ExportFilename)
 
-
-
         End Select
     End Sub
 
     Private Sub Export_FixedField(ExpFileName As String)
-
+        Debug.Print("not yet implemented")
     End Sub
 
     Private Sub Export_Delimited(ExpFileName As String)
-
+        Debug.Print("not yet implemented")
     End Sub
 
 
@@ -373,7 +372,7 @@ Public Class Interchange
     End Sub
 
     Private Sub Export_SQL(ExpFileName As String)
-
+        Debug.Print("not yet implemented")
     End Sub
 
     Public Sub Validate()
@@ -429,11 +428,15 @@ Public Class Interchange
         Dim X As Integer
         Console.WriteLine("X12 Error Status:" & Interchange.ErrorType)
         Console.WriteLine("Number of errors:" & Interchange.ErrorCount)
-
-        For X = 0 To Interchange.ErrorCount - 1
-            Console.WriteLine(Interchange.ErrorMsg(X))
-            Debug.Print(Interchange.ErrorMsg(X))
-        Next
+        If s_ErrorFile <> "" Then
+            '@TODO create error file data instead of display
+            Debug.Print("Output Error file")
+        Else
+            For X = 0 To Interchange.ErrorCount - 1
+                Console.WriteLine(Interchange.ErrorMsg(X))
+                Debug.Print(Interchange.ErrorMsg(X))
+            Next
+        End If
     End Sub
     Public Sub Merge_Data()
         Dim myrecid As String
@@ -447,11 +450,9 @@ Public Class Interchange
             myrecid = rec.SegID.Replace(vbLf, "")
             CurrentRecordset.Import_X12(myrecid, rec, RecordCount)
 
-
-
             ' need to generate CTT & SE & GE & IEA
             If debugflag Then
-                Debug.Print("Next" + myrecid)
+                Debug.Print("Next" & myrecid)
             End If
             Prev_Rec = myrecid
         Next ' rec in segments

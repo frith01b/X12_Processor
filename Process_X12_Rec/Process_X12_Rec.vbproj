@@ -13,6 +13,8 @@
     <MyType>Console</MyType>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -318,6 +320,14 @@
       <Project>{c8416c95-6bcd-40c1-bd31-65ee43e66a50}</Project>
       <Name>X12_Processor</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Analyzer Include="..\packages\SecurityCodeScan.VS2017.3.5.4\analyzers\dotnet\SecurityCodeScan.VS2017.dll" />
+    <Analyzer Include="..\packages\SecurityCodeScan.VS2017.3.5.4\analyzers\dotnet\YamlDotNet.dll" />
+    <Analyzer Include="..\packages\SonarAnalyzer.VisualBasic.8.44.0.52574\analyzers\Google.Protobuf.dll" />
+    <Analyzer Include="..\packages\SonarAnalyzer.VisualBasic.8.44.0.52574\analyzers\SonarAnalyzer.CFG.dll" />
+    <Analyzer Include="..\packages\SonarAnalyzer.VisualBasic.8.44.0.52574\analyzers\SonarAnalyzer.dll" />
+    <Analyzer Include="..\packages\SonarAnalyzer.VisualBasic.8.44.0.52574\analyzers\SonarAnalyzer.VisualBasic.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
 </Project>

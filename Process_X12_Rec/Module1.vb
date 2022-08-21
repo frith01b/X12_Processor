@@ -1,4 +1,5 @@
 ﻿Option Explicit On
+Option Strict On
 
 Imports System.Xml
 Imports System.Globalization
@@ -39,29 +40,24 @@ Module Module1
                     Directory.CreateDirectory(OutputPath)
                 End If
             End If
+            '@TODO need to add function that accepts pre/post processing function reference for easy integration.
+            '@TODO develop flat reference in recordset object to all transactions to allow easy direct update.
             If Not Interchange.hasErrors Then
                 edi_processor.FindFiles()
-                While Interchange.MoreFiles And Not Interchange.hasErrors
+                While Interchange.MoreFiles
                     'After Import, all segments will be available in CurrentRecordSet 
                     edi_processor.ImportNextFile()
                     ' Validate converts raw data to X12
                     edi_processor.Validate()
-                    If Not Interchange.hasErrors Then
-                        ' PostProcess includes record cleanup, substitutions, filtering, and re-format prep
-                        edi_processor.PostProcess()
+                    ' PostProcess includes record cleanup, substitutions, filtering, and re-format prep
+                    edi_processor.PostProcess()
 
-                        If Not Interchange.hasErrors Then
-                            ' wont over-write existing, always adds timestamp to processed files and unique Xmit #.
-                            edi_processor.Export(OutputPath & "\" & Path.GetFileNameWithoutExtension(edi_processor.CurrentImportFile) & ".850")
-                        Else
-                            b_success = False
-                            Interchange.Dump_X12_Errors()
-                            Exit While
-                        End If
-                    Else
+                        edi_processor.Export(OutputPath & "\" & Path.GetFileNameWithoutExtension(edi_processor.CurrentImportFile) & ".850")
+
+                    If Interchange.hasErrors Then
                         b_success = False
                         Interchange.Dump_X12_Errors()
-                        Exit While
+                        'Exit While
                     End If
                 End While
 

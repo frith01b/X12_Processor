@@ -54,8 +54,8 @@ Public Class Utility
         Try
             Dim SmtpServer As New SmtpClient("exch2k16", 25)
             Dim mail As New MailMessage()
-            Dim MyIdentity As WindowsIdentity = WindowsIdentity.GetCurrent()
-            Dim MyPrincipal As New WindowsPrincipal(MyIdentity)
+            ' Dim MyIdentity As WindowsIdentity = WindowsIdentity.GetCurrent()
+            ' Dim MyPrincipal As New WindowsPrincipal(MyIdentity)
             ' alternate method
             'AppDomain.CurrentDomain.SetPrincipalPolicy(CType(System.Threading.Thread.CurrentPrincipal,WindowsPrincipal));
 
@@ -79,9 +79,9 @@ Public Class Utility
 
             mail.Subject = EmailSubject
             mail.Body = EmailBody
-            If (Not AttachFileNames Is Nothing) Then
+            If (AttachFileNames IsNot Nothing) Then
                 For i_loop = 0 To AttachFileNames.Count - 1
-                    If (AttachFileNames(i_loop).Length > 0 And File.Exists(AttachFileNames(i_loop))) Then
+                    If (AttachFileNames(i_loop).Length > 0 AndAlso File.Exists(AttachFileNames(i_loop))) Then
                         mail.Attachments.Add(New Net.Mail.Attachment(AttachFileNames(i_loop)))
                     End If
                 Next
@@ -102,7 +102,7 @@ Public Class Utility
             Throw New SmtpException("Unable to send email" & vbCrLf & ex.Message)
         End Try
 
-        Send_Email = retVal
+        Return retVal
 
     End Function
 
@@ -138,15 +138,17 @@ Public Class Utility
         ' FullyqualifiedClassName expected similar to  System.Windows.Forms.Button
         Dim nspc As String = fullyQualifiedClassName.Substring(0, fullyQualifiedClassName.LastIndexOf("."c))
             Dim o As Object = Nothing
-            Try
-                For Each ay In Assembly.GetExecutingAssembly().GetReferencedAssemblies()
-                    If (ay.Name = nspc) Then
-                        o = Assembly.Load(ay).CreateInstance(fullyQualifiedClassName)
-                        Exit For
-                    End If
-                Next
-            Catch
-            End Try
+        Try
+            For Each ay In Assembly.GetExecutingAssembly().GetReferencedAssemblies()
+                If (ay.Name = nspc) Then
+                    o = Assembly.Load(ay).CreateInstance(fullyQualifiedClassName)
+                    Exit For
+                End If
+            Next
+        Catch
+            'ignore load error
+
+        End Try
             Return o
         End Function
         Public Shared Function GetAscii(mychar As Char) As Integer

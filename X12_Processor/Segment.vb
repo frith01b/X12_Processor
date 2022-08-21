@@ -6,6 +6,7 @@ Imports System.Data
 Imports System.IO
 Imports System.Xml.Serialization
 Imports X12_Processor
+Imports System.Text
 
 ' @TODO  Sub-field processing
 ' @TODO  Load_Field_Config() (XML)
@@ -154,7 +155,7 @@ Public Class Segment
         End Set
     End Property
 
-    Public Property Parent As SegTranslate Implements SegTranslate.parent
+    Public Property Parent As SegTranslate Implements SegTranslate.Parent
         Get
             Return _Parent
         End Get
@@ -206,17 +207,17 @@ Public Class Segment
     End Function
 
     Public Function Output_X12() As String Implements SegTranslate.Output_X12
-        Dim RESULT As String = ""
+        Dim RESULT As StringBuilder = New StringBuilder
         Dim FieldList As List(Of String)
         Dim x As Integer
 
-        RESULT = String.Join("", Enumerable.Repeat(" ", RecordLength))
+        RESULT.Append(String.Join("", Enumerable.Repeat(" ", RecordLength)))
 
         FieldList = _Fields.Keys.ToList()
         FieldList.Sort()
 
         ' add record name
-        RESULT = RESULT & RecordName & Interchange.FieldDelimiter
+        RESULT.Append(RecordName & Interchange.FieldDelimiter)
 
 
         For x = 0 To FieldList.Count - 1
@@ -225,39 +226,39 @@ Public Class Segment
             Select Case FieldDefs.FieldDefList(x).Alignment.ToUpper
                 Case "LPAD"
                     ' should be getfield that calls these as subs
-                    RESULT = RESULT & Get_Field_LPAD(_Fields(FieldList(x)), FieldDefs.FieldDefList(x).FLength, FieldDefs.FieldDefList(x).Padding)
+                    RESULT.Append(Get_Field_LPAD(_Fields(FieldList(x)), FieldDefs.FieldDefList(x).FLength, FieldDefs.FieldDefList(x).Padding))
                 Case "RPAD"
-                    RESULT = RESULT & Get_Field_RPAD(_Fields(FieldList(x)), FieldDefs.FieldDefList(x).FLength, FieldDefs.FieldDefList(x).Padding)
+                    RESULT.Append(Get_Field_RPAD(_Fields(FieldList(x)), FieldDefs.FieldDefList(x).FLength, FieldDefs.FieldDefList(x).Padding))
                 Case "ZPAD"
-                    RESULT = RESULT & Get_Field_ZPAD(_Fields(FieldList(x)), FieldDefs.FieldDefList(x).FLength, FieldDefs.FieldDefList(x).Padding)
+                    RESULT.Append(Get_Field_ZPAD(_Fields(FieldList(x)), FieldDefs.FieldDefList(x).FLength, FieldDefs.FieldDefList(x).Padding))
                 Case "RAW"
-                    RESULT = RESULT & _Fields(FieldList(x))
+                    RESULT.Append(_Fields(FieldList(x)))
                 Case "NONE"
-                    RESULT = RESULT & _Fields(FieldList(x))
+                    RESULT.Append(_Fields(FieldList(x)))
                 Case Else
-                    RESULT = RESULT & _Fields(FieldList(x))
+                    RESULT.Append(_Fields(FieldList(x)))
 
             End Select
 
             If x = FieldList.Count - 1 Then
                 'If PartnerInfo.X12_Always_Delimiter = True Or Mid(PartnerInfo.M2K_PARTNER_ID, 1, 5) = "PRIDE" Or Mid(PartnerInfo.M2K_PARTNER_ID, 1, 5) = "CLARK" Then
-                '    RESULT = RESULT & X12SegDelimiter
+                '    RESULT.append(X12SegDelimiter
                 'end if
             Else
-                RESULT = RESULT & Interchange.FieldDelimiter
+                RESULT.Append(Interchange.FieldDelimiter)
             End If
 
         Next
 
-        Return RESULT
+        Return RESULT.ToString
     End Function
 
     Public Function Filter() As String() Implements SegTranslate.Filter
-        Throw New NotImplementedException()
+        Debug.Print("not yet implemented")
     End Function
 
     Public Sub ReMap() Implements SegTranslate.ReMap
-        Throw New NotImplementedException()
+        Debug.Print("not yet implemented")
     End Sub
 
     ' fixed length field output
@@ -267,12 +268,12 @@ Public Class Segment
         outField = outField.Replace(Interchange.FieldDelimiter, Interchange.FieldDelimiter_Replace_Char)
         ' add padding character to end, limit max size to myLen
         outField &= String.Join("", Enumerable.Repeat(myPad, myLen))
-        outField = outField.Substring(1, myLen) + Interchange.FieldDelimiter
+        outField = outField.Substring(1, myLen) & Interchange.FieldDelimiter
         Return outField
     End Function
     Function Get_Field_LPAD(ByRef outField As String, myLen As Integer, myPad As String) As String
         ' ensure data does not contain field/element delimiter
-        If Not outField Is Nothing Then
+        If outField <> Nothing Then
             outField = outField.Replace(Interchange.FieldDelimiter, Interchange.FieldDelimiter_Replace_Char)
         Else
             outField = ""
@@ -352,7 +353,7 @@ Public Class Segment
         Dim FieldCount As Integer
         Dim FieldList As List(Of String)
         Dim x As Integer
-        Dim Result As String = ""
+        Dim Result As StringBuilder = New StringBuilder
 
         FieldList = _Fields.Keys.ToList()
         FieldList.Sort()
@@ -363,22 +364,23 @@ Public Class Segment
             'need to substring & PAD & Strip quotes
             Select Case FieldDefs.FieldDefList(x).Alignment
                 Case "LPAD"
-                    Result &= Get_Field_LPAD(_Fields(FieldList(x)), FieldDefs.FieldDefList(x).FLength, FieldDefs.FieldDefList(x).Padding)
+                    Result.Append(Get_Field_LPAD(_Fields(FieldList(x)), FieldDefs.FieldDefList(x).FLength, FieldDefs.FieldDefList(x).Padding))
+
                 Case "RPAD"
-                    Result &= Get_Field_RPAD(_Fields(FieldList(x)), FieldDefs.FieldDefList(x).FLength, FieldDefs.FieldDefList(x).Padding)
+                    Result.Append(Get_Field_RPAD(_Fields(FieldList(x)), FieldDefs.FieldDefList(x).FLength, FieldDefs.FieldDefList(x).Padding))
                 Case "ZPAD"
-                    Result &= Get_Field_ZPAD(_Fields(FieldList(x)), FieldDefs.FieldDefList(x).FLength, FieldDefs.FieldDefList(x).Padding)
+                    Result.Append(Get_Field_ZPAD(_Fields(FieldList(x)), FieldDefs.FieldDefList(x).FLength, FieldDefs.FieldDefList(x).Padding))
             End Select
 
             If x < FieldCount - 1 Then
-                Result &= Interchange.FieldDelimiter
+                Result.Append(Interchange.FieldDelimiter)
             End If
         Next
-        Return Result
+        Return Result.ToString
     End Function
 
     Public Function Validate() As Boolean Implements SegTranslate.Validate
-        Throw New NotImplementedException()
+        Debug.Print("not yet implemented")
     End Function
     Public Sub LoadFieldDef() Implements SegTranslate.LoadFieldDef
         LoadFieldDef(ConfigInfo.SegmentDefDir & "\" & _RecordName & ".def")
@@ -387,16 +389,17 @@ Public Class Segment
         If File.Exists(TranDefFileName) Then
             Dim xml_serializer As New XmlSerializer(GetType(FieldDefSet))
             Dim stream_reader As New StreamReader(TranDefFileName)
-            Dim myFieldDefs As FieldDefSet = DirectCast(xml_serializer.Deserialize(stream_reader),
+            Dim myFieldDefs As FieldDefSet
+            myFieldDefs = DirectCast(xml_serializer.Deserialize(stream_reader),
                                                  FieldDefSet)
             stream_reader.Close()
         Else
-
+            Interchange.AddError("ERR005:Missing TranDefFile : " & TranDefFileName, Interchange.Error_Type_List.StdError)
         End If
     End Sub
 
     Public Sub InitializeTranDef() Implements SegTranslate.InitializeTranDef
-        Throw New NotImplementedException()
+        Debug.Print("not yet implemented")
     End Sub
 
     Public Sub SaveTranDef() Implements SegTranslate.SaveTranDef
@@ -408,7 +411,7 @@ Public Class Segment
     End Sub
 
     Public Sub AddLoopItem(MySegment As SegTranslate) Implements SegTranslate.AddLoopItem
-        If Not MySegment Is Nothing Then
+        If MySegment IsNot Nothing Then
             If _LoopData Is Nothing Then
                 _LoopData = New List(Of SegTranslate)
             End If
